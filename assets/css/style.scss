@@ -25,6 +25,10 @@ header li {
     width: 100%;
 }
 
+header ul li + li + li {
+    width: 100%;
+}
+
 header ul a {
     text-align: left;
     font-size: 14px;
@@ -111,6 +115,10 @@ a:hover, a:focus {
     header li {
         width: auto;
         margin: 0 10px;
+    }
+
+    header ul li + li + li {
+        width: auto;
     }
 
     header ul a {

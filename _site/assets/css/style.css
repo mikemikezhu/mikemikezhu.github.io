@@ -220,6 +220,8 @@ header ul { background: none; border-radius: 0; border: none; width: 100%; }
 
 header li { display: block; border: none; width: 100%; }
 
+header ul li + li + li { width: 100%; }
+
 header ul a { text-align: left; font-size: 14px; text-decoration: underline; color: #267CB9; }
 
 header ul a:hover, header ul a:focus { color: #069; }
@@ -250,5 +252,6 @@ a:hover, a:focus { font-weight: normal; text-decoration: underline; }
   section { width: 100%; border-width: 1px 0 0 0; }
   header ul { position: static; display: flex; justify-content: center; width: 90%; margin: 0 auto; }
   header li { width: auto; margin: 0 10px; }
+  header ul li + li + li { width: auto; }
   header ul a { text-align: center; } }
 @media print, screen and (max-width: 480px) { .avatar { width: 100px; height: 100px; margin: 10px 0; } }
