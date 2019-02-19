@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Introduction to AVAudioSession in iOS | Mikemike Zhu.</title>
+<meta name="generator" content="Jekyll v3.7.4" />
+<meta property="og:title" content="Introduction to AVAudioSession in iOS" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Designer / Developer" />
+<meta property="og:description" content="Designer / Developer" />
+<link rel="canonical" href="http://localhost:4000/2019/02/19/audio-session.html" />
+<meta property="og:url" content="http://localhost:4000/2019/02/19/audio-session.html" />
+<meta property="og:site_name" content="Mikemike Zhu." />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2019-02-19T00:00:00+08:00" />
+<script type="application/ld+json">
+{"description":"Designer / Developer","@type":"BlogPosting","url":"http://localhost:4000/2019/02/19/audio-session.html","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/img/icon.jpg"}},"headline":"Introduction to AVAudioSession in iOS","dateModified":"2019-02-19T00:00:00+08:00","datePublished":"2019-02-19T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2019/02/19/audio-session.html"},"@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=2d8f8ee6c52e807eed449fd647c3cfa62ea89850">
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+    <div class="wrapper">
+        <header>
+            <h1><a href="http://localhost:4000/">Mikemike Zhu.</a></h1>
+
+            <p>Designer / Developer</p>
+
+            
+            <img src="/assets/img/icon.jpg" alt="Logo" />
+            
+
+            <ul>
+                
+                <li>
+                    <a href="/2019/02/19/audio-session.html">Introduction to AVAudioSession in iOS</a>
+                </li>
+                
+                <li>
+                    <a href="/2019/02/18/wechat-pay.html">用Spring框架实现微信小程序支付功能</a>
+                </li>
+                
+            </ul>
+
+            
+            <p class="view"><a href="https://github.com/mikemikezhu/mikemikezhu.github.io">View the Project on GitHub <small>mikemikezhu/mikemikezhu.github.io</small></a></p>
+            
+
+            
+
+            
+        </header>
+        <section>
+
+            <small>19 February 2019</small>
+<h1>Introduction to AVAudioSession in iOS</h1>
+
+<p class="view">by </p>
+
+
+<h2 id="abstract">Abstract</h2>
+
+<p>Audio session is working as an intermediary object for application system to communicate with the underlying audio hardware, which is widely used in the applications to play ringtone, ringback tone, audio/video call, as well as sound files. This technical document will mainly discuss the usage AVAudioSession, in order to provide clearer understanding of audio session, and also prevent the misusage of AVAudioSession during the software development.</p>
+
+<p><br /></p>
+
+<h2 id="introduction-of-avaudiosession">Introduction of AVAudioSession</h2>
+
+<p>This section will mainly introduce the correct usage of AVAudioSession, by referring to Apple’s official documentation.</p>
+
+<p>In addition, in order to allow developers to use AVAudioSession properly, the following information will also be concisely discussed in this section:</p>
+
+<ul>
+  <li>Recommended usage of each audio session</li>
+  <li>Race condition when using audio session</li>
+  <li>Comparison between each audio session</li>
+</ul>
+
+<p><br /></p>
+
+<h3 id="1-audio-session-category">1. Audio session category</h3>
+
+<p>AVAudioSession category is used to specify how the audio is intended to be used in the application, and provide a way for application developers to manipulate the audio behaviours of the system.</p>
+
+<p>By default, the AVAudioSession category is “AVAudioSessionCategorySoloAmbient”.</p>
+
+<p>The comparison among different AVAudioSession categories is illustrated as follows:</p>
+
+<h4 id="avaudiosessioncategorysoloambient-default">AVAudioSessionCategorySoloAmbient (Default)</h4>
+
+<p>“AVAudioSessionCategorySoloAmbient” is the <strong>default</strong> AVAudioSession category.
+In specific, when the device is locked, or switched to be silent, then the audio will also be silenced.</p>
+
+<p>It is noteworthy that, by using such category, the audio is <strong>non-mixable</strong>, which means the activated audio session will interfere other audio sessions which are also non-mixable.
+If developers need the audio to be mixable, “AVAudioSessionCategoryAmbient” shall be used in this case.</p>
+
+<h4 id="avaudiosessioncategoryambient">AVAudioSessionCategoryAmbient</h4>
+
+<p>“AVAudioSessionCategoryAmbient” is the AVAudioSession category which is used for non-primary sound playback.</p>
+
+<p>In specific, when the device is locked, or switched to be silent, then the audio will also be silenced.</p>
+
+<p>Additionally, the audio can be mixed with others by using such category.</p>
+
+<p><strong>Usage:</strong> used to play audio which is intended to be <strong>mixed</strong> with the audio from other apps, such as playing the music sound in the game application.</p>
+
+<h4 id="avaudiosessioncategoryplayback">AVAudioSessionCategoryPlayback</h4>
+
+<p>“AVAudioSessionCategoryPlayback” is the AVAudioSession category which is used to play audio which needs to be played even though the device is locked or switched to be silent.</p>
+
+<p>In other words, the audio will continue to play, on the condition that the device is locked, or switched to be silent.</p>
+
+<p>By default, using this category implies that audio will be non-mixable.</p>
+
+<p>If developers need the audio to be mixable, “AVAudioSessionCategoryOptionMixWithOthers” shall be set as category option.</p>
+
+<p><strong>Usage:</strong> used to play audio which needs to be played even though the device is locked or switched to be silent, such as <strong>music player application</strong>.</p>
+
+<h4 id="avaudiosessioncategoryrecord">AVAudioSessionCategoryRecord</h4>
+
+<p>“AVAudioSessionCategoryRecord” is the AVAudioSession category which is used to record the audio while silencing other playback audio.</p>
+
+<p>However, such category will not prevent the audio session from being interrupted by other non-mixable audio sessions, such as phone calls, alarms, etc.</p>
+
+<p>In addition, permissions may need to be granted when using such category for audio recording.</p>
+
+<p><strong>Usage:</strong> used to record the audio which does not want to be interfered by other non-mixable playback audio sessions.</p>
+
+<h4 id="avaudiosessioncategoryplayandrecord">AVAudioSessionCategoryPlayAndRecord</h4>
+
+<p>“AVAudioSessionCategoryPlayAndRecord” is the AVAudioSession category which is used in the applications which need both recording and playing the audio.</p>
+
+<p>Furthermore, the audio will continue to play, even though the device is locked, or switched to be silent.</p>
+
+<p>By default, using this category implies that audio will be non-mixable.</p>
+
+<p>If developers need the audio to be mixable, “AVAudioSessionCategoryOptionMixWithOthers” shall be set as category option.</p>
+
+<p><strong>Usage:</strong> used in the applications which need record audio and play audio feature, such as <strong>making a phone call</strong>.</p>
+
+<h4 id="avaudiosessioncategorymultiroute">AVAudioSessionCategoryMultiRoute</h4>
+
+<p>“AVAudioSessionCategoryMultiRoute” is the AVAudioSession category which is used to output audio data to various routes simultaneously.</p>
+
+<p>If developers need the audio to be mixable, “AVAudioSessionCategoryOptionMixWithOthers” shall be set as category option.</p>
+
+<p><strong>Usage:</strong> used in the applications which need route audio to different output devices.</p>
+
+<h4 id="avaudiosessioncategoryaudioprocessing-deprecated">AVAudioSessionCategoryAudioProcessing (Deprecated)</h4>
+
+<p>“AVAudioSessionCategoryAudioProcessing” is the AVAudioSession category which is used to handle audio format conversion.</p>
+
+<p>Specifically, while using an audio hardware codec or a signal processor, such category will automatically disable both audio output and audio input.</p>
+
+<p>It is noteworthy that, such category has already been deprecated since iOS 10.0.</p>
+
+<p><strong>Usage:</strong> used in the applications which need offline audio format conversion.</p>
+
+<p><br /></p>
+
+<table>
+  <tbody>
+    <tr>
+      <td><strong>Audio session category</strong></td>
+      <td><strong>Silenced when device locked</strong></td>
+      <td><strong>Mixable</strong></td>
+      <td><strong>Usage</strong></td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategorySoloAmbient (Default)</td>
+      <td>Yes</td>
+      <td>No</td>
+      <td>Play</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryAmbient</td>
+      <td>Yes</td>
+      <td>Yes</td>
+      <td>Play</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryPlayback</td>
+      <td>No</td>
+      <td>No by default (Yes by setting “AVAudioSessionCategoryOptionMixWithOthers”)</td>
+      <td>Play</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryRecord</td>
+      <td>No</td>
+      <td>No</td>
+      <td>Record</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryPlayAndRecord</td>
+      <td>No</td>
+      <td>No by default (Yes by setting “AVAudioSessionCategoryOptionMixWithOthers”)</td>
+      <td>Play / Record</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryMultiRoute</td>
+      <td>No</td>
+      <td>No by default (Yes by setting “AVAudioSessionCategoryOptionMixWithOthers”)</td>
+      <td>Play / Record</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryAudioProcessing</td>
+      <td>-</td>
+      <td>-</td>
+      <td>Audio procession</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><br /></p>
+
+<h3 id="2-audio-session-category-option">2. Audio session category option</h3>
+
+<p>Additionally, category options are used to specify the behaviour of the current active audio session category.</p>
+
+<p>The comparison between different AVAudioSession category options are described as follows:</p>
+
+<h4 id="avaudiosessioncategoryoptionmixwithothers">AVAudioSessionCategoryOptionMixWithOthers</h4>
+
+<p>“AVAudioSessionCategoryOptionMixWithOthers” is the category option which allows the audio to be <strong>mixable</strong> with the audio from other applications.</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<ul>
+  <li>
+    <p>This category option is only compatible with “AVAudioSessionCategoryPlayAndRecord”, “AVAudioSessionCategoryPlayback”, and “AVAudioSessionCategoryMultiRoute”.</p>
+  </li>
+  <li>
+    <p>If the category is set to be “AVAudioSessionCategoryAmbient”, such category option is set automatically, which means the audio will be mixable.</p>
+  </li>
+  <li>
+    <p>If the category option is set to be “AVAudioSessionCategoryOptionDuckOthers” and “AVAudioSessionCategoryOptionInterruptSpokenAudioAndMixWithOthe rs”, such category option is set automatically.</p>
+  </li>
+</ul>
+
+<h4 id="avaudiosessioncategoryoptionduckothers">AVAudioSessionCategoryOptionDuckOthers</h4>
+
+<p>“AVAudioSessionCategoryOptionDuckOthers” is the category option which allows the audio from other applications to be ducked (<strong>reduced in volumn</strong>), when the audio from the current session plays.</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<ul>
+  <li>
+    <p>This category option is only compatible with “AVAudioSessionCategoryPlayAndRecord”, “AVAudioSessionCategoryPlayback”, and “AVAudioSessionCategoryMultiRoute”.</p>
+  </li>
+  <li>
+    <p>Setting this category option will also set “AVAudioSessionCategoryOptionMixWithOthers” category option.</p>
+  </li>
+</ul>
+
+<h4 id="avaudiosessioncategoryoptionallowbluetooth">AVAudioSessionCategoryOptionAllowBluetooth</h4>
+
+<p>“AVAudioSessionCategoryOptionAllowBluetooth” is the category option which allows audio input and output to a paired Bluetooth Hands-Free Profile (HFP) device.</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<ul>
+  <li>This category option is only compatible with “AVAudioSessionCategoryPlayAndRecord”, and “AVAudioSessionCategoryRecord”.</li>
+</ul>
+
+<h4 id="avaudiosessioncategoryoptiondefaulttospeaker">AVAudioSessionCategoryOptionDefaultToSpeaker</h4>
+<p>“AVAudioSessionCategoryOptionDefaultToSpeaker” is the category option which specifies the default audio output to be the built-in speaker.</p>
+
+<p><strong>Race conditions:</strong></p>
+<ul>
+  <li>
+    <p>This category option is only compatible with “AVAudioSessionCategoryPlayAndRecord”.</p>
+  </li>
+  <li>
+    <p>By setting such category option, audio will <strong>always route to the speaker</strong>, rather than receiver, if no other accessory, such as headphones, are in use.</p>
+  </li>
+  <li>
+    <p><strong>Changing audio session route will not reset this category option.</strong> Only changing the audio session category will reset this category option.</p>
+  </li>
+</ul>
+
+<h4 id="avaudiosessioncategoryoptioninterruptspokenaudioandmixwithothers">AVAudioSessionCategoryOptionInterruptSpokenAudioAndMixWithOthers</h4>
+
+<p>“AVAudioSessionCategoryOptionInterruptSpokenAudioAndMixWithOthers” is the category option which will pause the continuous spoken content from other applications, when the audio from the current session plays.</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<ul>
+  <li>
+    <p>This category option is only compatible with “AVAudioSessionCategoryPlayAndRecord”, “AVAudioSessionCategoryPlayback”, and “AVAudioSessionCategoryMultiRoute”.</p>
+  </li>
+  <li>
+    <p>Setting this category option will also set “AVAudioSessionCategoryOptionMixWithOthers” category option.</p>
+  </li>
+  <li>
+    <p>If this category option is set, the current audio content will be mixed with other audio sessions.</p>
+  </li>
+  <li>
+    <p>However, audio content will be paused if using the “AVAudioSessionModeSpokenAudio” audio session mode.</p>
+  </li>
+</ul>
+
+<h4 id="avaudiosessioncategoryoptionallowbluetootha2dp">AVAudioSessionCategoryOptionAllowBluetoothA2DP</h4>
+
+<p>“AVAudioSessionCategoryOptionAllowBluetoothA2DP” is the category option which allows the audio session to be streamed to Bluetooth device which supports the Advanced Audio Distribution Profile (A2DP).</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<ul>
+  <li>
+    <p>If using “AVAudioSessionCategoryAmbient”, “AVAudioSessionCategorySoloAmbient”, and “AVAudioSessionCategoryPlayback”, then the system will automatically route to A2DP port.</p>
+  </li>
+  <li>
+    <p>If using “AVAudioSessionCategoryPlayAndRecord”, together with such category option, then the system will also route to A2DP port, since iOS 10.0.</p>
+  </li>
+  <li>
+    <p>If using “AVAudioSessionCategoryMultiRoute” and “AVAudioSessionCategoryRecord”, then this option will be cleared, and Bluetooth A2DP devices will not be available output routes.</p>
+  </li>
+</ul>
+
+<h4 id="avaudiosessioncategoryoptionallowairplay">AVAudioSessionCategoryOptionAllowAirPlay</h4>
+
+<p>“AVAudioSessionCategoryOptionAllowAirPlay” is the category option which allows the audio session to be streamed to AirPlay devices.</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<ul>
+  <li>
+    <p>If using “AVAudioSessionCategoryPlayAndRecord”, together with such category option, then the system will also route to AirPlay devices.</p>
+  </li>
+  <li>
+    <p>If using “AVAudioSessionCategoryMultiRoute” and “AVAudioSessionCategoryRecord”, then this option will be cleared, and AirPlay devices will not be available output routes.</p>
+  </li>
+</ul>
+
+<p><br /></p>
+
+<table>
+  <tbody>
+    <tr>
+      <td><strong>Audio session category option</strong></td>
+      <td><strong>Compatible with audio session category</strong></td>
+      <td><strong>Usage</strong></td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryOptionMixWithOthers</td>
+      <td>AVAudioSessionCategoryPlayAndRecord AVAudioSessionCategoryPlayback AVAudioSessionCategoryMultiRoute</td>
+      <td>Allow audio to be <strong>mixable</strong> with the audio from other applications</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryOptionDuckOthers</td>
+      <td>AVAudioSessionCategoryPlayAndRecord AVAudioSessionCategoryPlayback AVAudioSessionCategoryMultiRoute</td>
+      <td>Allow the audio from other applications to <strong>reduce the volumn</strong>, when playing the current audio content</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryOptionAllowBluetooth</td>
+      <td>AVAudioSessionCategoryPlayAndRecord AVAudioSessionCategoryRecord</td>
+      <td>Bluetooth HFP device</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryOptionDefaultToSpeaker</td>
+      <td>AVAudioSessionCategoryPlayAndRecord</td>
+      <td><strong>Always route to speaker</strong></td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryOption InterruptSpokenAudioAndMixWithOthers</td>
+      <td>AVAudioSessionCategoryPlayAndRecord AVAudioSessionCategoryPlayback AVAudioSessionCategoryMultiRoute</td>
+      <td>Allow audio to be mixable, but pause the spoken content</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryOptionAllowBluetoothA2DP</td>
+      <td>AVAudioSessionCategoryPlayAndRecord</td>
+      <td>Bluetooth A2DP device</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionCategoryOptionAllowAirPlay</td>
+      <td>AVAudioSessionCategoryPlayAndRecord</td>
+      <td>AirPlay device</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><br /></p>
+
+<h3 id="3-audio-session-mode">3. Audio session mode</h3>
+
+<p>Never can we neglect the fact that, developers are able to use the audio session mode, together with the audio session category, in order to configure the system how the audio will be used in the applications.</p>
+
+<p>The audio system will be configured for various use cases such as video chat or voice calling, video recording, etc.</p>
+
+<p>By default, the AVAudioSession category is “AVAudioSessionModeDefault”.</p>
+
+<p>The comparison between different AVAudioSession modes are demonstrated below:</p>
+
+<h4 id="avaudiosessionmodedefault-default">AVAudioSessionModeDefault (Default)</h4>
+
+<p>“AVAudioSessionModeDefault” is the <strong>default</strong> AVAudioSession mode, which is compatible with every audio session category.</p>
+
+<h4 id="avaudiosessionmodemovieplayback">AVAudioSessionModeMoviePlayback</h4>
+
+<p>“AVAudioSessionModeMoviePlayback” is used to enhance the signal processing of <strong>movie playback</strong> for certain audio routes such as built-in speaker or headphones.
+This mode is only compatible with “AVAudioSessionCategoryPlayback” audio session category.</p>
+
+<h4 id="avaudiosessionmodevideorecording">AVAudioSessionModeVideoRecording</h4>
+
+<p>“AVAudioSessionModeVideoRecording” is used to <strong>record a video</strong>. Specifically, if the device has more than one built-in microphones, the audio session will use the microphones which is closet to the video camera.</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<p>This mode is only compatible with “AVAudioSessionCategoryPlayAndRecord” and “AVAudioSessionCategoryRecord” audio session category.</p>
+
+<h4 id="avaudiosessionmodevoicechat">AVAudioSessionModeVoiceChat</h4>
+
+<p>“AVAudioSessionModeVoiceChat” is used in applications with features such as VoIP <strong>voice call</strong> in order to perform two-way communication.</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<p>This mode is only compatible with “AVAudioSessionCategoryPlayAndRecord” audio session category.</p>
+
+<h4 id="avaudiosessionmodegamechat">AVAudioSessionModeGameChat</h4>
+
+<p>“AVAudioSessionModeGameChat” is used in Game Kit applications for <strong>game voice chat</strong> service.</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<p>This mode is only compatible with “AVAudioSessionCategoryPlayAndRecord” audio session category.</p>
+
+<h4 id="avaudiosessionmodevideochat">AVAudioSessionModeVideoChat</h4>
+<p>“AVAudioSessionModeVideoChat” is used in applications which need <strong>video call</strong>, such as Facetime, Skype or WeChat video call, etc.</p>
+
+<p>In specific, the tonal equalization as well as audio routes will be optimized for video call, by using such mode.</p>
+
+<p><strong>Race conditions:</strong>
+This mode is only compatible with “AVAudioSessionCategoryPlayAndRecord” and “AVAudioSessionCategoryRecord” audio session category.</p>
+
+<h4 id="avaudiosessionmodespokenaudio">AVAudioSessionModeSpokenAudio</h4>
+
+<p>“AVAudioSessionModeSpokenAudio” is used in the scenario that user wants to pause the audio playback, and starts to play the continuous spoken audio.</p>
+
+<p><strong>Race conditions:</strong></p>
+
+<p>This mode is only compatible with “AVAudioSessionCategoryPlayback” audio session category.</p>
+
+<h4 id="avaudiosessionmodemeasurement">AVAudioSessionModeMeasurement</h4>
+
+<p>“AVAudioSessionModeMeasurement” is used when performing the measurement of audio input / output.</p>
+
+<p>Specifically, it will reduce the amount of the system audio input / output to the minimum, for the purpose of performing measurement of the application’s audio.</p>
+
+<p><strong>Race conditions:</strong>
+This mode is only compatible with “AVAudioSessionCategoryPlayback”, “AVAudioSessionCategoryRecord”, “AVAudioSessionCategoryPlayAndRecord” audio session category.</p>
+
+<p><br /></p>
+
+<table>
+  <tbody>
+    <tr>
+      <td><strong>Audio session mode</strong></td>
+      <td><strong>Compatible with audio session category</strong></td>
+      <td><strong>Usage</strong></td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionModeDefault</td>
+      <td>All</td>
+      <td>Default</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionModeMoviePlayback</td>
+      <td>AVAudioSessionCategoryPlayback</td>
+      <td>Movie playback</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionModeVideoRecording</td>
+      <td>AVAudioSessionCategoryRecord AVAudioSessionCategoryPlayAndRecord</td>
+      <td>Video recording</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionModeVoiceChat</td>
+      <td>AVAudioSessionCategoryPlayAndRecord</td>
+      <td>Voice call</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionModeGameChat</td>
+      <td>AVAudioSessionCategoryPlayAndRecord</td>
+      <td>Game chat</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionModeVideoChat</td>
+      <td>AVAudioSessionCategoryRecord AVAudioSessionCategoryPlayAndRecord</td>
+      <td>Video call</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionModeSpokenAudio</td>
+      <td>AVAudioSessionCategoryPlayback</td>
+      <td>Spoken audio</td>
+    </tr>
+    <tr>
+      <td>AVAudioSessionModeMeasurement</td>
+      <td>AVAudioSessionCategoryPlayback AVAudioSessionCategoryRecord AVAudioSessionCategoryPlayAndRecord</td>
+      <td>Measurement of audio input / output</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><br /></p>
+
+<h3 id="4-port-types">4. Port types</h3>
+
+<p>The eligible <em>output</em> port types are illustrated as follows:</p>
+
+<h4 id="avaudiosessionportlineout">AVAudioSessionPortLineOut</h4>
+<p>“AVAudioSessionPortLineOut” refers to the line-level output of the dock connector.</p>
+
+<h4 id="avaudiosessionportheadphones">AVAudioSessionPortHeadphones</h4>
+<p>“AVAudioSessionPortHeadphones” refers to the head phones or wired header set devices.</p>
+
+<h4 id="avaudiosessionportbluetootha2dp">AVAudioSessionPortBluetoothA2DP</h4>
+<p>“AVAudioSessionPortBluetoothA2DP” refers to the bluetooth A2DP device.</p>
+
+<h4 id="avaudiosessionportbuiltinreceiver">AVAudioSessionPortBuiltInReceiver</h4>
+<p>“AVAudioSessionPortBuiltInReceiver” refers to the <strong>built-in receiver</strong> of the device.</p>
+
+<h4 id="avaudiosessionportbuiltinspeaker">AVAudioSessionPortBuiltInSpeaker</h4>
+<p>“AVAudioSessionPortBuiltInSpeaker” refers to the <strong>built-in speaker</strong> of the device.</p>
+
+<h4 id="avaudiosessionporthdmi">AVAudioSessionPortHDMI</h4>
+<p>“AVAudioSessionPortHDMI” refers to the output via HDMI specification.</p>
+
+<h4 id="avaudiosessionportairplay">AVAudioSessionPortAirPlay</h4>
+<p>“AVAudioSessionPortAirPlay” refers to the AirPlay device.</p>
+
+<h4 id="avaudiosessionportbluetoothle">AVAudioSessionPortBluetoothLE</h4>
+<p>“AVAudioSessionPortBuetoothLE” refers to the Bluetooth Low Energy device.</p>
+
+<p>The eligible both <em>input</em> and <em>output</em> port types are illustrated as follows:</p>
+
+<h4 id="avaudiosessionportbluetoothhfp">AVAudioSessionPortBluetoothHFP</h4>
+<p>“AVAudioSessionPortBuetoothHFP” refers to the Bluetooth HFP device.</p>
+
+<h4 id="avaudiosessionportusbaudio">AVAudioSessionPortUSBAudio</h4>
+<p>“AVAudioSessionPortUSBAudio” refers to the USB device.</p>
+
+<h4 id="avaudiosessionportcaraudio">AVAudioSessionPortCarAudio</h4>
+<p>“AVAudioSessionPortCarAudio” refers to the car audio input / output.</p>
+
+<h3 id="5-change-audio-session-route">5. Change audio session route</h3>
+
+<p>Furthermore, audio session route can be <strong>temporarily</strong> changed by using the following API:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">-</span> <span class="p">(</span><span class="n">BOOL</span><span class="p">)</span><span class="n">overrideOutputAudioPort</span><span class="o">:</span><span class="p">(</span><span class="n">AVAudioSessionPortOverride</span><span class="p">)</span><span class="n">portOverride</span> 
+                          <span class="n">error</span><span class="o">:</span><span class="p">(</span><span class="n">NSError</span> <span class="o">*</span> <span class="n">_Nullable</span> <span class="o">*</span><span class="p">)</span><span class="n">outError</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Developers are able to override with the following options:</p>
+<ul>
+  <li>AVAudioSessionPortOverrideNone</li>
+  <li>AVAudioSessionPortOverrideSpeaker</li>
+</ul>
+
+<p><br /></p>
+
+<h3 id="6-observing-audio-session-route-changes">6. Observing audio session route changes</h3>
+
+<p>Last but not least, the audio session route changes could be observed by observing “AVAudioSessionRouteChangeNotification”.</p>
+
+<p>In specific, developers are able to know the previous route by checking “AVAudioSessionRouteChangePreviousRouteKey” in the route change notification user info.</p>
+
+<p><br /></p>
+
+<h2 id="references">References</h2>
+
+<ol>
+  <li><a href="https://developer.apple.com/documentation/avfoundation/ avaudiosession?language=objc">AVAudioSession</a></li>
+  <li><a href="https://developer.apple.com/documentation/avfoundation/ avaudiosession/audio_session_categories?language=objc">AVAudioSession categories</a></li>
+  <li><a href="https://developer.apple.com/documentation/avfoundation/ avaudiosession/audio_session_modes?language=objc">AVAudioSession modes</a></li>
+  <li><a href="https://developer.apple.com/documentation/avfoundation/ avaudiosession/1616443-overrideoutputaudioport?language=objc">Override ouput audio port</a></li>
+  <li><a href="https://developer.apple.com/documentation/avfoundation/ avaudiosessionroutechangenotification">AVAudioSession route change notification</a></li>
+</ol>
+
+
+
+  <small>tags: <em></em></small>
+
+
+
+        </section>
+    </div>
+    <script src="/assets/js/scale.fix.js"></script>
+    
+</body>
+
+</html>
