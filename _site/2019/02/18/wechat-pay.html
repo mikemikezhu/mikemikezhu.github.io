@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>用Spring框架实现微信小程序支付功能 | Mikemike Zhu.</title>
+<meta name="generator" content="Jekyll v3.7.4" />
+<meta property="og:title" content="用Spring框架实现微信小程序支付功能" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Designer / Developer" />
+<meta property="og:description" content="Designer / Developer" />
+<link rel="canonical" href="http://localhost:4000/2019/02/18/wechat-pay.html" />
+<meta property="og:url" content="http://localhost:4000/2019/02/18/wechat-pay.html" />
+<meta property="og:site_name" content="Mikemike Zhu." />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2019-02-18T00:00:00+08:00" />
+<script type="application/ld+json">
+{"description":"Designer / Developer","@type":"BlogPosting","url":"http://localhost:4000/2019/02/18/wechat-pay.html","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/img/icon.jpg"}},"headline":"用Spring框架实现微信小程序支付功能","dateModified":"2019-02-18T00:00:00+08:00","datePublished":"2019-02-18T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2019/02/18/wechat-pay.html"},"@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=6c561caa08224b2cb864d173dab915b54695a4e7">
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+    <div class="wrapper">
+        <header>
+            <h1><a href="http://localhost:4000/">Mikemike Zhu.</a></h1>
+
+            <p>Designer / Developer</p>
+
+            
+            <img src="/assets/img/icon.jpg" alt="Logo" />
+            
+
+            <ul>
+                
+                <li>
+                    <a href="/2019/02/18/wechat-pay.html">用Spring框架实现微信小程序支付功能</a>
+                </li>
+                
+            </ul>
+
+            
+            <p class="view"><a href="https://github.com/mikemikezhu/mikemikezhu.github.io">View the Project on GitHub <small>mikemikezhu/mikemikezhu.github.io</small></a></p>
+            
+
+            
+
+            
+        </header>
+        <section>
+
+            <small>18 February 2019</small>
+<h1>用Spring框架实现微信小程序支付功能</h1>
+
+<p class="view">by </p>
+
+
+<h2 id="前言">前言</h2>
+
+<p>近期在帮家里做微信小程序的时候，涉及到了微信支付功能，故尝试用主流的Java框架SpringMVC实现了微信支付这一功能。本文将主要向大家介绍实现微信支付功能的具体步骤。</p>
+
+<p><br /></p>
+
+<h2 id="开发前准备">开发前准备</h2>
+
+<p>在开发小程序的微信支付功能之前，我们需要完成以下几个准备工作。</p>
+
+<h3 id="1-小程序微信认证">1. 小程序微信认证</h3>
+
+<p>(1) 首先，在浏览器中打开<a href="[https://mp.weixin.qq.com/wxopen/waregister?action=step1">微信公众平台</a>，从而注册微信小程序。若已有微信小程序，可以直接选择登录。</p>
+
+<p>(2) 其次，在首页中找到微信认证这一步骤。</p>
+
+<p>(3) 当完成微信认证后，我们可以在“开发-&gt;开发设置”这里找到小程序对应的AppId以及小程序密钥AppSecret。</p>
+
+<p><img src="/assets/img/2019-02-18-wechat-pay/wechat-id.png" alt="小程序对应的AppId" /></p>
+
+<p><br /></p>
+
+<h3 id="2-微信支付认证">2. 微信支付认证</h3>
+
+<p>(1) 在<a href="[https://mp.weixin.qq.com/wxopen/waregister?action=step1">微信公众平台</a>，选择“微信支付-&gt;支付申请”，从而前往申请微信支付的认证。</p>
+
+<p>(2) 申请成功以后，我们会收到来自微信支付认证的邮件。里面包含微信支付的商户号，也就是后面要用到的mch_id。</p>
+
+<p><img src="/assets/img/2019-02-18-wechat-pay/mail.png" alt="微信支付商户号" /></p>
+
+<p><br /></p>
+
+<h3 id="3-商户授权">3. 商户授权</h3>
+
+<p>(1) 登录<a href="https://pay.weixin.qq.com">微信支付商户平台</a>。</p>
+
+<p>(2) 点击“产品中心-&gt;APPID授权管理-&gt;新增授权”，进入授权申请页面。</p>
+
+<p><img src="/assets/img/2019-02-18-wechat-pay/authorization.png" alt="商户授权申请" /></p>
+
+<p>(3) 填写需要使用这个商户号的小程序的AppId并发起授权。</p>
+
+<p>(4) 登录<a href="[https://mp.weixin.qq.com/wxopen/waregister?action=step1">微信公众平台</a>，点击“微信支付-&gt;商户号管理”，确认授权申请。</p>
+
+<p><br /></p>
+
+<h3 id="4-设置api密钥">4. 设置API密钥</h3>
+
+<p>在进行微信支付的过程中，我们需要对支付信息进行加密签名。为保证API安全，需要在<a href="https://pay.weixin.qq.com">微信支付商户平台</a>中设置API密钥。</p>
+
+<p>点击“账户中心-&gt;API安全-&gt;设置API密钥”。API密钥属于敏感信息，请妥善保管不要泄露，如果怀疑信息泄露，则需要重设密钥。</p>
+
+<p><img src="/assets/img/2019-02-18-wechat-pay/key.png" alt="API密钥" /></p>
+
+<p><br /></p>
+
+<h2 id="开发步骤">开发步骤</h2>
+
+<h3 id="1-登录小程序">1. 登录小程序</h3>
+
+<p>在微信支付的过程中，我们的后台需要唯一用户标识openid等信息。然而，出于安全考虑，微信后台不会直接把openid发送给小程序，而是需要小程序先请求微信后台，获取临时登录凭证code。
+然后，小程序再将此code发送给我们自己的服务器后台，后台再调用微信的API，通过此登录凭证code，换取唯一用户标识openid等信息。</p>
+
+<p>(1) 小程序端请求临时登录凭证code：</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nx">wx</span><span class="p">.</span><span class="nx">login</span><span class="p">({</span>
+    <span class="na">success</span><span class="p">:</span> <span class="nx">response</span> <span class="o">=&gt;</span> <span class="p">{</span>
+        <span class="kd">const</span> <span class="nx">code</span> <span class="o">=</span> <span class="nx">response</span><span class="p">.</span><span class="nx">code</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">code</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// Send "code" to our backend</span>
+            <span class="p">...</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">})</span>
+</code></pre></div></div>
+
+<p>(2) 换取唯一用户标识openid：</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="nf">requestLoginSession</span><span class="o">(</span><span class="n">String</span> <span class="n">code</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">RestClientException</span> <span class="o">{</span>
+
+    <span class="n">UriComponentsBuilder</span> <span class="n">builder</span> <span class="o">=</span> <span class="n">UriComponentsBuilder</span>
+            <span class="o">.</span><span class="na">fromUriString</span><span class="o">(</span><span class="n">loginSessionUrl</span><span class="o">)</span>
+            <span class="o">.</span><span class="na">queryParam</span><span class="o">(</span><span class="n">APP_ID_KEY</span><span class="o">,</span> <span class="n">appId</span><span class="o">)</span>
+            <span class="o">.</span><span class="na">queryParam</span><span class="o">(</span><span class="n">APP_SECRET_KEY</span><span class="o">,</span> <span class="n">appSecret</span><span class="o">)</span>
+            <span class="o">.</span><span class="na">queryParam</span><span class="o">(</span><span class="n">LOGIN_SESSION_CODE_KEY</span><span class="o">,</span> <span class="n">code</span><span class="o">)</span>
+            <span class="o">.</span><span class="na">queryParam</span><span class="o">(</span><span class="n">LOGIN_SESSION_GRANT_TYPE_KEY</span><span class="o">,</span> <span class="n">loginSessionGrantType</span><span class="o">);</span>
+
+    <span class="n">ResponseEntity</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">responseEntity</span> <span class="o">=</span> <span class="n">restTemplate</span><span class="o">.</span><span class="na">getForEntity</span><span class="o">(</span><span class="n">builder</span><span class="o">.</span><span class="na">toUriString</span><span class="o">(),</span> <span class="n">String</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+    <span class="n">String</span> <span class="n">responseBody</span> <span class="o">=</span> <span class="n">responseEntity</span><span class="o">.</span><span class="na">getBody</span><span class="o">();</span>
+    <span class="n">JSONObject</span> <span class="n">jsonObject</span> <span class="o">=</span> <span class="k">new</span> <span class="n">JSONObject</span><span class="o">(</span><span class="n">responseBody</span><span class="o">);</span>
+
+    <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">result</span> <span class="o">=</span> <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;&gt;();</span>
+
+    <span class="k">if</span> <span class="o">(</span><span class="n">jsonObject</span><span class="o">.</span><span class="na">has</span><span class="o">(</span><span class="n">OPEN_ID_KEY</span><span class="o">))</span> <span class="o">{</span>
+        <span class="c1">// Get open id from WeChat server</span>
+        <span class="n">String</span> <span class="n">openId</span> <span class="o">=</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="n">OPEN_ID_KEY</span><span class="o">);</span>
+        <span class="n">result</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">OPEN_ID_KEY</span><span class="o">,</span> <span class="n">openId</span><span class="o">);</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+
+    <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">jsonObject</span><span class="o">.</span><span class="na">has</span><span class="o">(</span><span class="n">ERROR_CODE_KEY</span><span class="o">)</span> <span class="o">&amp;&amp;</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">has</span><span class="o">(</span><span class="n">ERROR_MESSAGE_KEY</span><span class="o">))</span> <span class="o">{</span>
+        <span class="n">Integer</span> <span class="n">errorCode</span> <span class="o">=</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getInt</span><span class="o">(</span><span class="n">ERROR_CODE_KEY</span><span class="o">);</span>
+        <span class="n">String</span> <span class="n">errorMessage</span> <span class="o">=</span> <span class="n">jsonObject</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="n">ERROR_MESSAGE_KEY</span><span class="o">);</span>
+        <span class="n">result</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">ERROR_CODE_KEY</span><span class="o">,</span> <span class="n">errorCode</span><span class="o">);</span>
+        <span class="n">result</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">ERROR_MESSAGE_KEY</span><span class="o">,</span> <span class="n">errorMessage</span><span class="o">);</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+
+    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nf">RestClientException</span><span class="o">(</span><span class="s">"Fail to parse login session response"</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>如果按照以上方法的话，每次微信支付都需要调用“wx.login”的API。那么有什么办法可以只调用一次“wx.login”的API呢？
+为了改进，我们可以让小程序onLaunch启动的时候，调用一次“wx.login”的API。然后，我们的后台换取openid。拿到openid之后，我们可以生成一个session_id, 并将其存入Redis数据库当中。
+为了安全起见，我们还可以将session_id设置一定的时效性。最后，我们再把这个session_id返回给小程序。
+那么这样，每次微信支付的时候，小程序只需要通过session_id与我们后台沟通即可。</p>
+
+<p><br /></p>
+
+<h3 id="2-统一下单">2. 统一下单</h3>
+
+<p>当我们拿到用户的openid的时候，就可以统一下单了。这一步骤的目的是为了获取prepay_id。
+首先，我们要把相关的参数进行第一次签名，并以XML的形式发送给微信后台。
+如果签名成功，微信后台就会发送含有prepay_id的回复。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="nf">sendWeChatPayRequest</span><span class="o">(</span><span class="n">String</span> <span class="n">openId</span><span class="o">,</span>
+                                                <span class="n">String</span> <span class="n">tradeNumber</span><span class="o">,</span>
+                                                <span class="n">String</span> <span class="n">productName</span><span class="o">,</span>
+                                                <span class="n">String</span> <span class="n">clientIpAddress</span><span class="o">,</span>
+                                                <span class="n">Double</span> <span class="n">totalPrice</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">RestClientException</span> <span class="o">{</span>
+
+    <span class="n">String</span> <span class="n">nonceStr</span> <span class="o">=</span> <span class="n">RandomNonceUtil</span><span class="o">.</span><span class="na">generateRandomNonce</span><span class="o">();</span>
+    <span class="n">Integer</span> <span class="n">totalPriceInt</span> <span class="o">=</span> <span class="o">((</span><span class="n">Double</span><span class="o">)</span> <span class="o">(</span><span class="n">totalPrice</span> <span class="o">*</span> <span class="mi">100</span><span class="o">)).</span><span class="na">intValue</span><span class="o">();</span>
+
+    <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">requestParams</span> <span class="o">=</span> <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;&gt;();</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">APP_ID_KEY</span><span class="o">,</span> <span class="n">appId</span><span class="o">);</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">MCH_ID_KEY</span><span class="o">,</span> <span class="n">mchId</span><span class="o">);</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">NONCE_STR_KEY</span><span class="o">,</span> <span class="n">nonceStr</span><span class="o">);</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">BODY_KEY</span><span class="o">,</span> <span class="n">productName</span><span class="o">);</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">OUT_TRADE_NO_KEY</span><span class="o">,</span> <span class="n">tradeNumber</span><span class="o">);</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">TOTAL_FEE_KEY</span><span class="o">,</span> <span class="n">totalPriceInt</span><span class="o">.</span><span class="na">toString</span><span class="o">());</span> <span class="c1">// Need to convert to string, otherwise pay sign will fail</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">SPBILL_CREATE_IP_KEY</span><span class="o">,</span> <span class="n">clientIpAddress</span><span class="o">);</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">NOTIFY_URL_KEY</span><span class="o">,</span> <span class="n">notifyUrl</span><span class="o">);</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">TRADE_TYPE_KEY</span><span class="o">,</span> <span class="n">tradeType</span><span class="o">);</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">OPEN_ID_KEY</span><span class="o">,</span> <span class="n">openId</span><span class="o">);</span>
+
+    <span class="c1">// First sign</span>
+    <span class="n">String</span> <span class="n">firstSign</span> <span class="o">=</span> <span class="n">PaySignUtil</span><span class="o">.</span><span class="na">createSign</span><span class="o">(</span><span class="n">requestParams</span><span class="o">,</span> <span class="n">payKey</span><span class="o">);</span>
+    <span class="n">requestParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">PAY_SIGN_KEY</span><span class="o">,</span> <span class="n">firstSign</span><span class="o">);</span>
+
+    <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">orderedRequestParams</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TreeMap</span><span class="o">&lt;&gt;(</span><span class="n">requestParams</span><span class="o">);</span>
+    <span class="n">String</span> <span class="n">xml</span> <span class="o">=</span> <span class="n">XmlUtil</span><span class="o">.</span><span class="na">convertToXml</span><span class="o">(</span><span class="n">orderedRequestParams</span><span class="o">);</span>
+
+    <span class="n">LOGGER</span><span class="o">.</span><span class="na">info</span><span class="o">(</span><span class="s">"Request WeChat pay: "</span> <span class="o">+</span> <span class="n">xml</span><span class="o">);</span>
+
+    <span class="n">HttpHeaders</span> <span class="n">headers</span> <span class="o">=</span> <span class="k">new</span> <span class="n">HttpHeaders</span><span class="o">();</span>
+    <span class="n">headers</span><span class="o">.</span><span class="na">setContentType</span><span class="o">(</span><span class="n">MediaType</span><span class="o">.</span><span class="na">APPLICATION_XML</span><span class="o">);</span>
+
+    <span class="n">HttpEntity</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">entity</span> <span class="o">=</span> <span class="k">new</span> <span class="n">HttpEntity</span><span class="o">&lt;&gt;(</span><span class="n">xml</span><span class="o">,</span> <span class="n">headers</span><span class="o">);</span>
+
+    <span class="n">ResponseEntity</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">responseEntity</span> <span class="o">=</span> <span class="n">restTemplate</span><span class="o">.</span><span class="na">postForEntity</span><span class="o">(</span><span class="n">requestPayUrl</span><span class="o">,</span> <span class="n">entity</span><span class="o">,</span> <span class="n">String</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+    <span class="n">String</span> <span class="n">result</span> <span class="o">=</span> <span class="n">responseEntity</span><span class="o">.</span><span class="na">getBody</span><span class="o">();</span>
+
+    <span class="n">LOGGER</span><span class="o">.</span><span class="na">info</span><span class="o">(</span><span class="s">"Receive WeChat pay response: "</span> <span class="o">+</span> <span class="n">result</span><span class="o">);</span>
+
+    <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">response</span> <span class="o">=</span> <span class="n">XmlUtil</span><span class="o">.</span><span class="na">parseXml</span><span class="o">(</span><span class="n">result</span><span class="o">);</span>
+
+    <span class="c1">// Parse XML server response</span>
+    <span class="o">...</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>其中，需要注意的有以下几点：</p>
+
+<p>(1) 支付金额的单位为“分”，而且需要转换成string，否则后面的签名会失败。</p>
+
+<p>(2) 此步骤需要用XML的形式与微信后台沟通。</p>
+
+<p>(3) 签名时，非空参数值的参数按照参数名ASCII码从小到大排序，使用key-value的格式（即key1=value1&amp;key2=value2…）拼接成字符串“stringA”。在“stringA”最后拼接上“key”得到“stringSignTemp”字符串，并对“stringSignTemp”进行MD5运算，再将得到的字符串所有字符转换为大写，得到sign值signValue。</p>
+
+<p>在这里，我用一个“PaySignUtil”的class实现以上签名的步骤：</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Public methods</span>
+
+<span class="kd">public</span> <span class="kd">static</span> <span class="n">String</span> <span class="nf">createSign</span><span class="o">(</span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">params</span><span class="o">,</span> <span class="n">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+    <span class="c1">// Create WeChat pay sign</span>
+    <span class="n">String</span> <span class="n">linkString</span> <span class="o">=</span> <span class="n">createLinkString</span><span class="o">(</span><span class="n">params</span><span class="o">);</span>
+    <span class="n">linkString</span> <span class="o">=</span> <span class="n">linkString</span> <span class="o">+</span> <span class="s">"&amp;"</span> <span class="o">+</span> <span class="n">KEY</span> <span class="o">+</span> <span class="s">"="</span> <span class="o">+</span> <span class="n">key</span><span class="o">;</span>
+    <span class="k">return</span> <span class="n">DigestUtils</span><span class="o">.</span><span class="na">md5DigestAsHex</span><span class="o">(</span><span class="n">getContentBytes</span><span class="o">(</span><span class="n">linkString</span><span class="o">,</span> <span class="s">"utf-8"</span><span class="o">)).</span><span class="na">toUpperCase</span><span class="o">();</span>
+<span class="o">}</span>
+
+<span class="c1">// Private methods</span>
+
+<span class="kd">private</span> <span class="kd">static</span> <span class="n">String</span> <span class="nf">createLinkString</span><span class="o">(</span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">params</span><span class="o">)</span> <span class="o">{</span>
+    <span class="c1">// Create link string key-value pair</span>
+    <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">keys</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;(</span><span class="n">params</span><span class="o">.</span><span class="na">keySet</span><span class="o">());</span>
+    <span class="n">Collections</span><span class="o">.</span><span class="na">sort</span><span class="o">(</span><span class="n">keys</span><span class="o">);</span>
+
+    <span class="n">String</span> <span class="n">linkString</span> <span class="o">=</span> <span class="s">""</span><span class="o">;</span>
+    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">keys</span><span class="o">.</span><span class="na">size</span><span class="o">();</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+        <span class="n">String</span> <span class="n">key</span> <span class="o">=</span> <span class="n">keys</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">i</span><span class="o">);</span>
+        <span class="n">String</span> <span class="n">value</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">key</span><span class="o">).</span><span class="na">toString</span><span class="o">();</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">keys</span><span class="o">.</span><span class="na">size</span><span class="o">()</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span> <span class="o">{</span>
+            <span class="c1">// Last value shall not contain "&amp;"</span>
+            <span class="n">linkString</span> <span class="o">=</span> <span class="n">linkString</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s">"="</span> <span class="o">+</span> <span class="n">value</span><span class="o">;</span>
+        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+            <span class="n">linkString</span> <span class="o">=</span> <span class="n">linkString</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s">"="</span> <span class="o">+</span> <span class="n">value</span> <span class="o">+</span> <span class="s">"&amp;"</span><span class="o">;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="k">return</span> <span class="n">linkString</span><span class="o">;</span>
+<span class="o">}</span>
+
+<span class="kd">private</span> <span class="kd">static</span> <span class="kt">byte</span><span class="o">[]</span> <span class="nf">getContentBytes</span><span class="o">(</span><span class="n">String</span> <span class="n">content</span><span class="o">,</span> <span class="n">String</span> <span class="n">charset</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">charset</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="s">""</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">charset</span><span class="o">))</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">content</span><span class="o">.</span><span class="na">getBytes</span><span class="o">();</span>
+    <span class="o">}</span>
+    <span class="k">try</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">content</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(</span><span class="n">charset</span><span class="o">);</span>
+    <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">UnsupportedEncodingException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nf">RuntimeException</span><span class="o">(</span><span class="s">"Incorrect charset: "</span> <span class="o">+</span> <span class="n">charset</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><br /></p>
+
+<h3 id="3-再次签名">3. 再次签名</h3>
+
+<p>当我们拿到微信后台发过来的，包含prepay_id的回复的时候，我们需要再次签名。并且将签名后的结果，发送给小程序。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Parse XML server response </span>
+<span class="o">...</span>
+
+<span class="n">String</span> <span class="n">prepayId</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"prepay_id"</span><span class="o">).</span><span class="na">toString</span><span class="o">();</span>
+<span class="n">String</span> <span class="n">responseNonceStr</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"nonce_str"</span><span class="o">).</span><span class="na">toString</span><span class="o">();</span>
+
+<span class="kt">long</span> <span class="n">timeStamp</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">currentTimeMillis</span><span class="o">()</span> <span class="o">/</span> <span class="mi">1000</span><span class="o">;</span>
+<span class="n">String</span> <span class="n">timeStampStr</span> <span class="o">=</span> <span class="n">Long</span><span class="o">.</span><span class="na">toString</span><span class="o">(</span><span class="n">timeStamp</span><span class="o">);</span>
+
+<span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">responseParams</span> <span class="o">=</span> <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;&gt;();</span>
+<span class="n">responseParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">APP_ID_KEY</span><span class="o">,</span> <span class="n">appId</span><span class="o">);</span>
+<span class="n">responseParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">NONCE_STR_KEY</span><span class="o">,</span> <span class="n">responseNonceStr</span><span class="o">);</span>
+<span class="n">responseParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">PACKAGE_KEY</span><span class="o">,</span> <span class="n">PREPAY_ID_KEY</span> <span class="o">+</span> <span class="s">"="</span> <span class="o">+</span> <span class="n">prepayId</span><span class="o">);</span>
+<span class="n">responseParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">SIGN_TYPE_KEY</span><span class="o">,</span> <span class="n">SIGN_TYPE_MD5</span><span class="o">);</span>
+<span class="n">responseParams</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">TIME_STAMP_KEY</span><span class="o">,</span> <span class="n">timeStampStr</span><span class="o">);</span>
+
+<span class="c1">// Second sign</span>
+<span class="n">String</span> <span class="n">secondSign</span> <span class="o">=</span> <span class="n">PaySignUtil</span><span class="o">.</span><span class="na">createSign</span><span class="o">(</span><span class="n">responseParams</span><span class="o">,</span> <span class="n">payKey</span><span class="o">);</span>
+
+<span class="c1">// Return the result to client</span>
+<span class="o">...</span>
+
+</code></pre></div></div>
+
+<p>小程序收到签名结果后，再将相关信息发送给微信后台：</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nx">wx</span><span class="p">.</span><span class="nx">requestPayment</span><span class="p">({</span>
+    <span class="na">timeStamp</span><span class="p">:</span> <span class="k">this</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">timeStampStr</span><span class="p">,</span>
+    <span class="na">nonceStr</span><span class="p">:</span> <span class="k">this</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">nonceStr</span><span class="p">,</span>
+    <span class="na">package</span><span class="p">:</span> <span class="k">this</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="kr">package</span><span class="p">,</span>
+    <span class="na">signType</span><span class="p">:</span> <span class="k">this</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">signType</span><span class="p">,</span>
+    <span class="na">paySign</span><span class="p">:</span> <span class="k">this</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">sign</span><span class="p">,</span>
+    <span class="na">success</span><span class="p">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">response</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Request payment success</span>
+    <span class="p">},</span>
+    <span class="na">fail</span><span class="p">:</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">response</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Request payment fail</span>
+    <span class="p">}</span>
+<span class="p">})</span>
+</code></pre></div></div>
+
+<p><br /></p>
+
+<h3 id="4-返回支付结果">4. 返回支付结果</h3>
+
+<p>如果我们成功完成以上几个步骤，在开发的过程中，就能看到这样一个二维码，让我们扫描并进行微信支付了。</p>
+
+<p><img src="/assets/img/2019-02-18-wechat-pay/wechat-pay.png" alt="微信支付二维码" /></p>
+
+<p>当用户支付成功以后，微信后台会给我们返回支付结果。当我们验证签名是否正确之后，可将结果发送回微信后台。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="nf">replyNotifyWeChatPay</span><span class="o">(</span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">response</span><span class="o">)</span> <span class="o">{</span>
+
+    <span class="n">LOGGER</span><span class="o">.</span><span class="na">info</span><span class="o">(</span><span class="s">"Receive notify WeChat pay response: "</span> <span class="o">+</span> <span class="n">response</span><span class="o">);</span>
+
+    <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">result</span> <span class="o">=</span> <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;&gt;();</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">response</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">RESULT_CODE_KEY</span><span class="o">)</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span>
+            <span class="n">response</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">RESULT_CODE_KEY</span><span class="o">).</span><span class="na">toString</span><span class="o">().</span><span class="na">equals</span><span class="o">(</span><span class="n">RESULT_CODE_SUCCESS</span><span class="o">))</span> <span class="o">{</span>
+
+        <span class="c1">// Verify pay sign</span>
+        <span class="kt">boolean</span> <span class="n">isValid</span> <span class="o">=</span> <span class="n">PaySignUtil</span><span class="o">.</span><span class="na">verify</span><span class="o">(</span><span class="n">response</span><span class="o">,</span> <span class="n">response</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">PAY_SIGN_KEY</span><span class="o">).</span><span class="na">toString</span><span class="o">(),</span> <span class="n">payKey</span><span class="o">);</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">isValid</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">result</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">RESULT_CODE_KEY</span><span class="o">,</span> <span class="n">RESULT_CODE_SUCCESS</span><span class="o">);</span>
+            <span class="n">result</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">RETURN_MSG_KEY</span><span class="o">,</span> <span class="n">RESULT_CODE_OK</span><span class="o">);</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="n">result</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">RESULT_CODE_KEY</span><span class="o">,</span> <span class="n">RESULT_CODE_FAIL</span><span class="o">);</span>
+    <span class="n">result</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">RETURN_MSG_KEY</span><span class="o">,</span> <span class="s">"Fail to verify pay sign"</span><span class="o">);</span>
+    <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><br /></p>
+
+<h2 id="结论">结论</h2>
+
+<p>本文将主要向大家介绍实现微信支付功能的具体步骤。演示项目请移步 <a href="https://github.com/mikemikezhu/wechat-pay-spring-demo">Github Project</a>。</p>
+
+<p><br /></p>
+
+<h2 id="参考资料">参考资料</h2>
+
+<p>(1) <a href="https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=7_1">微信支付开发文档</a>
+<br />
+(2) <a href="https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=4_3">微信支付安全规范</a>
+<br />
+(3) <a href="https://www.kancloud.cn/itlian/help/604746">微信支付时提示商户号mch_id与appid不匹配</a>
+<br /></p>
+
+
+
+  <small>tags: <em></em></small>
+
+
+
+        </section>
+    </div>
+    <script src="/assets/js/scale.fix.js"></script>
+    
+</body>
+
+</html>
