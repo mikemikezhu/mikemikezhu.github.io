@@ -1,0 +1,27 @@
+---
+layout: default
+---
+
+<h1>Backend Dev</h1>
+
+{% for category in site.categories %}
+{% assign category_name = category | first %}
+{% if category_name contains "Backend Dev" %}
+
+{% for posts in category %}
+{% for post in posts %}
+{% if post.url %}
+<div class="category-item">
+    <h3>
+        <a href="{{ post.url }}">{{ post.title }}</a>
+    </h3>
+    <time>{{ post.date | date: "%B %d, %Y" }}</time>
+    <p>{{ post.content | strip_html | truncatewords: 15 }}</p>
+    <a href="{{ post.url }}">View more</a>
+</div>
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+{% endif %}
+{% endfor %}
