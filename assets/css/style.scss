@@ -2,3 +2,15 @@
 ---
 
 @import "{{ site.theme }}";
+
+.wrapper {
+    width: 95%;
+}
+
+header {
+    width: 15%;
+}
+
+section {
+    width: 70%;
+}
