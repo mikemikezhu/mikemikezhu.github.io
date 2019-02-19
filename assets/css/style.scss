@@ -3,14 +3,106 @@
 
 @import "{{ site.theme }}";
 
-.wrapper {
-    width: 95%;
+body {
+    line-height: 2;
+    color: #565656;
 }
 
 header {
-    width: 15%;
+    width: 25%;
+}
+
+header ul {
+    background: none;
+    border-radius: 0;
+    border: none;
+    width: 100%;
+}
+
+header li {
+    display: block;
+    border: none;
+    width: 100%;
+}
+
+header ul a {
+    text-align: left;
+    font-size: 14px;
+    text-decoration: underline;
+    color: #267CB9;
+}
+
+header ul a:hover, header ul a:focus {
+    color:  #069;
 }
 
 section {
     width: 70%;
+}
+
+h1 {
+    font-size: 24px;
+}
+
+a:hover, a:focus {
+    font-weight: normal;
+    text-decoration: underline;
+}
+
+.wrapper {
+    width: 95%;
+}
+
+.site-title {
+    margin: 0 0 10px;
+    font-weight: 600;
+}
+
+.site-title a {
+    color: black;
+}
+
+.avatar {
+    border-radius: 50%;
+    width: 130px;
+    height: 130px;
+    margin: 16px 0 35px 0;
+}
+
+@media print, screen and (max-width: 960px) {
+
+    header {
+        width: 100%;
+        text-align: center;
+    }
+
+    section {
+        width: 100%;
+    }
+
+    header ul {
+        position: static;
+        display: flex;
+        justify-content: center;
+        width: 90%;
+        margin: 0 auto;
+    }
+
+    header li {
+        width: auto;
+        margin: 0 10px;
+    }
+
+    header ul a {
+        text-align: center;
+    }
+}
+
+@media print, screen and (max-width: 480px) {
+
+    .avatar {
+        width: 100px;
+        height: 100px;
+        margin: 10px 0;
+    }
 }
