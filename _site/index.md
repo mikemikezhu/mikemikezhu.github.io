@@ -42,6 +42,8 @@ Originally from Shenyang, China, I am currently working in Hong Kong as a full s
 
 [Email](mailto:12051594@life.hkbu.edu.hk)
 <br/>
+[LinkedIn](https://www.linkedin.com/in/mikemikezhu/)
+<br/>
 [Github](https://github.com/mikemikezhu)
 
 <br/>
