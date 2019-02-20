@@ -87,6 +87,8 @@ The following code will create a reference cycle.
 
 Because self ("MZObject") already has a strong reference to the block, while the block has a strong reference to self ("MZObject"). So they have strong reference pointing to each other.
 
+![Reference cycle](/assets/img/2019-02-20-reference-cycle/reference-cycle.png)
+
 In this case, "MZObject" will never be deallocated.
 
 ```c
@@ -115,6 +117,8 @@ If we run the project, we can see ">>>>>>>>>> Dealloc" is never printed out in t
 We can fix the issue in Scenario 1 by adding "weakSelf" and "strongSelf".
 
 In this case, "weakSelf" only has a weak reference to "MZObject", therefore "MZObject" can be deallocated successfully.
+
+![Reference cycle](/assets/img/2019-02-20-reference-cycle/fix-reference-cycle.png)
 
 ```c
 - (void)testReferenceCycle2 {

@@ -23,7 +23,7 @@
 {"description":"Designer / Developer","author":{"@type":"Person","name":"Mikemike Zhu"},"@type":"BlogPosting","url":"http://localhost:4000/dev/2019/02/20/reference-cycle.html","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/img/icon.jpg"},"name":"Mikemike Zhu"},"headline":"How to Avoid Reference Cycle in ARC","dateModified":"2019-02-20T00:00:00+08:00","datePublished":"2019-02-20T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/dev/2019/02/20/reference-cycle.html"},"@context":"http://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 
-    <link rel="stylesheet" href="/assets/css/style.css?v=7497cc696b2602a69c0415f0e8ec121ec4339fa2">
+    <link rel="stylesheet" href="/assets/css/style.css?v=4c6fba1efb9442fdec502d7da1e7f6e2d96c5b78">
     <!--[if lt IE 9]>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
@@ -137,6 +137,8 @@
 
 <p>Because self (“MZObject”) already has a strong reference to the block, while the block has a strong reference to self (“MZObject”). So they have strong reference pointing to each other.</p>
 
+<p><img src="/assets/img/2019-02-20-reference-cycle/reference-cycle.png" alt="Reference cycle" /></p>
+
 <p>In this case, “MZObject” will never be deallocated.</p>
 
 <div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">testReferenceCycle1</span> <span class="p">{</span>
@@ -163,6 +165,8 @@
 <p>We can fix the issue in Scenario 1 by adding “weakSelf” and “strongSelf”.</p>
 
 <p>In this case, “weakSelf” only has a weak reference to “MZObject”, therefore “MZObject” can be deallocated successfully.</p>
+
+<p><img src="/assets/img/2019-02-20-reference-cycle/fix-reference-cycle.png" alt="Reference cycle" /></p>
 
 <div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">testReferenceCycle2</span> <span class="p">{</span>
 	<span class="c1">// This will NOT create reference cycle
