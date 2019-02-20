@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>How to Avoid Reference Cycle in ARC | Mikemike Zhu.</title>
+<meta name="generator" content="Jekyll v3.7.4" />
+<meta property="og:title" content="How to Avoid Reference Cycle in ARC" />
+<meta name="author" content="Mikemike Zhu" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Designer / Developer" />
+<meta property="og:description" content="Designer / Developer" />
+<link rel="canonical" href="http://localhost:4000/dev/2019/02/20/reference-cycle.html" />
+<meta property="og:url" content="http://localhost:4000/dev/2019/02/20/reference-cycle.html" />
+<meta property="og:site_name" content="Mikemike Zhu." />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2019-02-20T00:00:00+08:00" />
+<script type="application/ld+json">
+{"description":"Designer / Developer","author":{"@type":"Person","name":"Mikemike Zhu"},"@type":"BlogPosting","url":"http://localhost:4000/dev/2019/02/20/reference-cycle.html","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/img/icon.jpg"},"name":"Mikemike Zhu"},"headline":"How to Avoid Reference Cycle in ARC","dateModified":"2019-02-20T00:00:00+08:00","datePublished":"2019-02-20T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/dev/2019/02/20/reference-cycle.html"},"@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=7497cc696b2602a69c0415f0e8ec121ec4339fa2">
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+    <div class="wrapper">
+        <header>
+            <h1 class="site-title"><a href="http://localhost:4000/">Mikemike Zhu.</a></h1>
+
+            <p>Designer / Developer</p>
+
+            
+            <img class="avatar" src="/assets/img/icon.jpg" alt="Logo" />
+            
+
+            <ul>
+                <li><a href="http://localhost:4000/">Bio</a></li>
+                
+                <li>
+                    <a href="/my_categories/Dev">Dev</a>
+                </li>
+                
+                <li><a href="http://mikemikezhu.me/">Design</a></li>
+            </ul>
+
+            
+        </header>
+        <section>
+
+            <small>20 February 2019</small>
+<h1>How to Avoid Reference Cycle in ARC</h1>
+
+<p class="view">by Mikemike Zhu</p>
+
+
+<h2 id="abstract">Abstract</h2>
+
+<p>Both Swift and Objective-C are using ARC (Auto Reference Counting) to manage the memory of the application. In this article, I will mainly discuss how to avoid reference cycle in ARC.</p>
+
+<p><br /></p>
+
+<h2 id="prerequisite">Prerequisite</h2>
+
+<p>Before we start, we should know the difference between strong / weak reference during the memory management.</p>
+
+<h3 id="1-arc-auto-reference-counting">1. ARC (Auto Reference Counting)</h3>
+
+<p>ARC works by counting the number of references to each object. When the reference count is larger than 0, then the object will keep alive. However, when the reference count drops to 0, then the object is definitely unreachable, and will be deallocated.</p>
+
+<h3 id="2-strong-reference">2. Strong reference</h3>
+
+<p>If there is a strong reference to the object, then the reference count of the object will increase by 1. In other words, as long as there are strong references to the object, then the reference count of the object will be larger than 0, and it will keep alive. However, if there are no strong references to the object, then the reference count will drop to 0, and then it will be recycled by ARC.</p>
+
+<h3 id="3-weak-reference">3. Weak reference</h3>
+
+<p>However, the weak reference does not increase the reference count of the object. It is noteworthy that, a weak reference is set to <strong>nil</strong> when there are no strong references to the object.</p>
+
+<p><br /></p>
+
+<h2 id="reference-cycle">Reference cycle</h2>
+
+<p>Reference cycle happens when there are strong references pointing to each other, which causes the object will never be deallocated.</p>
+
+<p>Let’s have a look at the following examples below, in order to understand the reference cycle problem.</p>
+
+<p>First of all, I have created a class “MZObject”, in which I have declared a property with <strong>strong reference</strong> to the block called “referenceCycleCompletionBlock”:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#import "MZObject.h"
+</span>
+<span class="k">typedef</span> <span class="kt">void</span><span class="p">(</span><span class="o">^</span><span class="n">MZReferenceCycleCompletionBlock</span><span class="p">)(</span><span class="kt">void</span><span class="p">);</span>
+
+<span class="err">@</span><span class="n">interface</span> <span class="n">MZObject</span> <span class="p">()</span>
+
+<span class="c1">// "MZObject" has a strong reference to the block
+</span><span class="err">@</span><span class="n">property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">strong</span><span class="p">)</span> <span class="n">MZReferenceCycleCompletionBlock</span> <span class="n">referenceCycleCompletionBlock</span><span class="p">;</span>
+
+<span class="err">@</span><span class="n">property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">strong</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">text</span><span class="p">;</span>
+
+<span class="err">@</span><span class="n">end</span>
+
+<span class="err">@</span><span class="n">implementation</span> <span class="n">MZObject</span>
+
+<span class="p">...</span>
+
+<span class="err">@</span><span class="n">end</span>
+</code></pre></div></div>
+
+<p>Then, I have added some logs to print the initialization and dealloc of the “MZObject”:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#pragma mark - Initialize
+</span>
+<span class="o">-</span> <span class="p">(</span><span class="n">instancetype</span><span class="p">)</span><span class="n">init</span> <span class="p">{</span>
+	<span class="n">self</span> <span class="o">=</span> <span class="p">[</span><span class="n">super</span> <span class="n">init</span><span class="p">];</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Initialize"</span><span class="p">);</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">self</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cp">#pragma mark - Dealloc
+</span>
+<span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">dealloc</span> <span class="p">{</span>
+	<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Dealloc"</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h4 id="scenario-1">Scenario 1:</h4>
+
+<p>The following code will create a reference cycle.</p>
+
+<p>Because self (“MZObject”) already has a strong reference to the block, while the block has a strong reference to self (“MZObject”). So they have strong reference pointing to each other.</p>
+
+<p>In this case, “MZObject” will never be deallocated.</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">testReferenceCycle1</span> <span class="p">{</span>
+	<span class="c1">// This will create reference cycle
+</span>	<span class="n">self</span><span class="p">.</span><span class="n">referenceCycleCompletionBlock</span> <span class="o">=</span> <span class="o">^</span><span class="p">{</span>
+		<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle"</span><span class="p">);</span>
+		<span class="n">self</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="err">@</span><span class="s">"text"</span><span class="p">;</span>
+		<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: %@"</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">text</span><span class="p">);</span>
+	<span class="p">};</span>
+
+	<span class="n">self</span><span class="p">.</span><span class="n">referenceCycleCompletionBlock</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>If we run the project, we can see “»»»»» Dealloc” is never printed out in the console.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2019-02-20 16:28:30.668641+0800 ReferenceCycleDemo[75335:15251817] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Initialize
+2019-02-20 16:28:30.668798+0800 ReferenceCycleDemo[75335:15251817] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle
+2019-02-20 16:28:30.668891+0800 ReferenceCycleDemo[75335:15251817] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: text
+</code></pre></div></div>
+
+<h4 id="scenario-2">Scenario 2:</h4>
+
+<p>We can fix the issue in Scenario 1 by adding “weakSelf” and “strongSelf”.</p>
+
+<p>In this case, “weakSelf” only has a weak reference to “MZObject”, therefore “MZObject” can be deallocated successfully.</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">testReferenceCycle2</span> <span class="p">{</span>
+	<span class="c1">// This will NOT create reference cycle
+</span>	<span class="n">__weak</span> <span class="n">typeof</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="n">weakSelf</span> <span class="o">=</span> <span class="n">self</span><span class="p">;</span>
+	<span class="n">self</span><span class="p">.</span><span class="n">referenceCycleCompletionBlock</span> <span class="o">=</span> <span class="o">^</span><span class="p">{</span>
+		<span class="n">typeof</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="n">strongSelf</span> <span class="o">=</span> <span class="n">weakSelf</span><span class="p">;</span>
+		<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle"</span><span class="p">);</span>
+		<span class="n">strongSelf</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="err">@</span><span class="s">"text"</span><span class="p">;</span>
+		<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: %@"</span><span class="p">,</span> <span class="n">strongSelf</span><span class="p">.</span><span class="n">text</span><span class="p">);</span>
+	<span class="p">};</span>
+
+	<span class="n">self</span><span class="p">.</span><span class="n">referenceCycleCompletionBlock</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>If we run the project, we can see “»»»»» Dealloc” is successfully printed out in the console.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2019-02-20 16:31:28.940376+0800 ReferenceCycleDemo[75386:15255699] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Initialize
+2019-02-20 16:31:28.940579+0800 ReferenceCycleDemo[75386:15255699] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle
+2019-02-20 16:31:28.941839+0800 ReferenceCycleDemo[75386:15255699] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: text
+2019-02-20 16:31:28.942006+0800 ReferenceCycleDemo[75386:15255699] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Dealloc
+</code></pre></div></div>
+
+<h4 id="scenario-3">Scenario 3:</h4>
+
+<p>Then, you may wonder, why do we need another “strongSelf”?</p>
+
+<p>Let’s have a try with only “weakSelf”, while we create a background thread and let it sleep for 10 seconds, before we make use of “weakSelf”.</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">testReferenceCycle3</span> <span class="p">{</span>
+	<span class="c1">// This will NOT create reference cycle
+</span>	<span class="n">__weak</span> <span class="n">typeof</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="n">weakSelf</span> <span class="o">=</span> <span class="n">self</span><span class="p">;</span>
+	<span class="n">self</span><span class="p">.</span><span class="n">referenceCycleCompletionBlock</span> <span class="o">=</span> <span class="o">^</span><span class="p">{</span>
+		<span class="n">dispatch_queue_t</span> <span class="n">serialQueue</span> <span class="o">=</span> <span class="n">dispatch_get_global_queue</span><span class="p">(</span><span class="n">DISPATCH_QUEUE_PRIORITY_DEFAULT</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+		<span class="n">dispatch_async</span><span class="p">(</span><span class="n">serialQueue</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+			<span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+			<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle"</span><span class="p">);</span>
+			<span class="n">weakSelf</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="err">@</span><span class="s">"text"</span><span class="p">;</span>
+
+			<span class="c1">// The text will be "nil",
+</span>			<span class="c1">// Because "self" is deallocated
+</span>			<span class="c1">// And "weakSelf" is pointing to "nil"
+</span>			<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: %@"</span><span class="p">,</span> <span class="n">weakSelf</span><span class="p">.</span><span class="n">text</span><span class="p">);</span>
+		<span class="p">});</span>
+	<span class="p">};</span>
+
+	<span class="n">self</span><span class="p">.</span><span class="n">referenceCycleCompletionBlock</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>If we run the project, we can see “»»»»» Text: (null)” is printed out in the console.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2019-02-20 16:38:58.918655+0800 ReferenceCycleDemo[75463:15263686] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Initialize
+2019-02-20 16:38:58.918836+0800 ReferenceCycleDemo[75463:15263686] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Dealloc
+2019-02-20 16:39:08.924087+0800 ReferenceCycleDemo[75463:15263740] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle
+2019-02-20 16:39:08.924357+0800 ReferenceCycleDemo[75463:15263740] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: (null)
+</code></pre></div></div>
+
+<p>The reason is that, by the time we execute the code, “MZObject” has already been deallocated. Then “weakSelf” will be pointing to nil. Hence, “weakSelf.text = xxx;” is not being executed properly.</p>
+
+<h4 id="scenario-4">Scenario 4:</h4>
+
+<p>Hence, we can fix the issue in Scenario 3 with a “strongSelf”:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">testReferenceCycle4</span> <span class="p">{</span>
+	<span class="c1">// This will NOT create reference cycle
+</span>	<span class="n">__weak</span> <span class="n">typeof</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="n">weakSelf</span> <span class="o">=</span> <span class="n">self</span><span class="p">;</span>
+	<span class="n">self</span><span class="p">.</span><span class="n">referenceCycleCompletionBlock</span> <span class="o">=</span> <span class="o">^</span><span class="p">{</span>
+		<span class="n">typeof</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="n">strongSelf</span> <span class="o">=</span> <span class="n">weakSelf</span><span class="p">;</span>
+		<span class="n">dispatch_queue_t</span> <span class="n">serialQueue</span> <span class="o">=</span> <span class="n">dispatch_get_global_queue</span><span class="p">(</span><span class="n">DISPATCH_QUEUE_PRIORITY_DEFAULT</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+		<span class="n">dispatch_async</span><span class="p">(</span><span class="n">serialQueue</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+			<span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+			<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle"</span><span class="p">);</span>
+			<span class="n">strongSelf</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="err">@</span><span class="s">"text"</span><span class="p">;</span>
+			<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: %@"</span><span class="p">,</span> <span class="n">strongSelf</span><span class="p">.</span><span class="n">text</span><span class="p">);</span> <span class="c1">// The text will NOT be "nil"
+</span>		<span class="p">});</span>
+	<span class="p">};</span>
+
+	<span class="n">self</span><span class="p">.</span><span class="n">referenceCycleCompletionBlock</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>If we run the project, we can see “»»»»» Text: text” is successfully printed out in the console.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2019-02-20 16:48:05.492885+0800 ReferenceCycleDemo[75624:15272848] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Initialize
+2019-02-20 16:48:15.496200+0800 ReferenceCycleDemo[75624:15272903] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle
+2019-02-20 16:48:15.496517+0800 ReferenceCycleDemo[75624:15272903] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: text
+2019-02-20 16:48:15.496715+0800 ReferenceCycleDemo[75624:15272903] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Dealloc
+</code></pre></div></div>
+
+<h4 id="scenario-5">Scenario 5:</h4>
+
+<p>However, it does not mean we should use “weakSelf” and “strongSelf” in all the blocks. <strong>“weakSelf” and “strongSelf” are only necessary when the instance of the class has a strong reference to the block.</strong></p>
+
+<p>For example, if the block is declared inside a function, then it will not cause any reference cycle problem. Because it is equivalent to declare the block as a <strong>local variable</strong> inside a function (See: Scenario 6), and therefore it will be deallocated after the function is executed.</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">testReferenceCycle5</span> <span class="p">{</span>
+	<span class="c1">// This will NOT create reference cycle
+</span>	<span class="p">[</span><span class="n">self</span> <span class="n">performBlockWithCompletion</span><span class="o">:^</span><span class="p">{</span>
+		<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle"</span><span class="p">);</span>
+		<span class="n">self</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="err">@</span><span class="s">"text"</span><span class="p">;</span>
+		<span class="n">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s">"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: %@"</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">text</span><span class="p">);</span>
+	<span class="p">}];</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>If we run the project, we can see “»»»»» Dealloc” is successfully printed out in the console.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2019-02-20 16:57:08.729539+0800 ReferenceCycleDemo[75732:15282020] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Initialize
+2019-02-20 16:57:08.729704+0800 ReferenceCycleDemo[75732:15282020] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle
+2019-02-20 16:57:08.729799+0800 ReferenceCycleDemo[75732:15282020] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: text
+2019-02-20 16:57:08.729911+0800 ReferenceCycleDemo[75732:15282020] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Dealloc
+</code></pre></div></div>
+
+<h4 id="scenario-6">Scenario 6:</h4>
+
+<p>Scenario 5 can be further re-write with a <strong>local variable</strong> in Scenario 6, and both scenario 5 and scenario 6 are equivalent. Hence, the reference cycle problem will never occur.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>- (void)testReferenceCycle6 {
+	// This will NOT create reference cycle
+	void (^completionBlock)(void) = ^{
+		NSLog(@"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle");
+		self.text = @"text";
+		NSLog(@"&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: %@", self.text);
+	};
+
+	[self performBlockWithCompletion:completionBlock];
+}
+</code></pre></div></div>
+
+<p>If we run the project, we can see “»»»»» Dealloc” is successfully printed out in the console.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2019-02-20 16:59:03.265632+0800 ReferenceCycleDemo[75757:15284207] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Initialize
+2019-02-20 16:59:03.265829+0800 ReferenceCycleDemo[75757:15284207] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Test reference cycle
+2019-02-20 16:59:03.265951+0800 ReferenceCycleDemo[75757:15284207] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Text: text
+2019-02-20 16:59:03.266052+0800 ReferenceCycleDemo[75757:15284207] &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Dealloc
+</code></pre></div></div>
+
+<p><br /></p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>This article mainly discribes how to avoid reference cycle in ARC. Only if we pay more attention to the reference cycle problems, can we improve the memory usage and avoid any memory leak issues.</p>
+
+<p><br /></p>
+
+<h2 id="download">Download</h2>
+
+<p>The example code can be downloaded in the following <a href="http://localhost:4000/assets/file/2019-02-20-reference-cycle/ReferenceCycleDemo.zip">link</a></p>
+
+
+
+  <small>tags: <em>ios</em> - <em>arc</em></small>
+
+
+
+        </section>
+    </div>
+    <script src="/assets/js/scale.fix.js"></script>
+    
+</body>
+
+</html>
