@@ -27,12 +27,12 @@
 
             <ul>
                 <li><a href="{{ "/" | absolute_url }}">Bio</a></li>
-                <li><a href="http://mikemikezhu.me/">Design</a></li>
                 {% for category in site.categories %}
                 <li>
                     <a href="/my_categories/{{ category | first }}">{{ category | first }}</a>
                 </li>
                 {% endfor %}
+                <li><a href="http://mikemikezhu.me/">Design</a></li>
             </ul>
 
             {% if site.show_downloads %}

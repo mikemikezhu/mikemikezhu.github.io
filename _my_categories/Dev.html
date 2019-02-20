@@ -2,11 +2,11 @@
 layout: default
 ---
 
-<h1>Backend Dev</h1>
+<h1>Dev</h1>
 
 {% for category in site.categories %}
 {% assign category_name = category | first %}
-{% if category_name contains "Backend Dev" %}
+{% if category_name contains "Dev" %}
 
 {% for posts in category %}
 {% for post in posts %}

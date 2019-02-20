@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Introduction to AVAudioSession in iOS"
-categories: [Mobile Dev]
+categories: [Dev]
 tag: [ios, AVAudioSession]
 author: Mikemike Zhu
 ---

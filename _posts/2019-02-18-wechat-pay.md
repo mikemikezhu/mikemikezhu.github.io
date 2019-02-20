@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "用Spring框架实现微信小程序支付功能"
-categories: [Backend Dev]
+categories: [Dev]
 tag: [wechat-pay, spring]
 author: Mikemike Zhu
 ---
