@@ -1,37 +1,45 @@
-## Welcome to GitHub Pages
+## About me
 
-You can use the [editor on GitHub](https://github.com/mikemikezhu/mikemikezhu.github.io/edit/master/index.md) to maintain and preview the content for your website in Markdown files.
+Hey, I'm Mike.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+Originally from Shenyang, China, I am currently working in Hong Kong as a full stack developer. The extensive background in mobile, and backend development has made me master the skills in technical design, software development, and CI/CD configuration, etc. In addition, passionately fond of guitar, painting and cooking food as my hobby, my life is always full of sunshine. I am a quick learner and ready for any challenge!
 
-### Markdown
+<br/>
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## Professions
 
-```markdown
-Syntax highlighted code block
+-- Software Engineer
 
-# Header 1
-## Header 2
-### Header 3
+*M800 Limited*, Hong Kong, 2016 - 2018
 
-- Bulleted
-- List
+-- Mobile Application Developer (Internship)
 
-1. Numbered
-2. List
+*AppUnique*, Hong Kong, 2015
 
-**Bold** and _Italic_ and `Code` text
+-- User Interface Designer (Internship)
 
-[Link](url) and ![Image](src)
-```
+*2359 Media*, Singapore, 2014
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+<br/>
 
-### Jekyll Themes
+## Education
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/mikemikezhu/mikemikezhu.github.io/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+-- Master of Science in Multimedia and Entertainment Technology
 
-### Support or Contact
+*Hong Kong Polytechnic University*, Hong Kong, 2015 - 2016
 
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+-- Exchange Programme, ADM
+
+*Nanyang Technological University*, Singapore, 2013
+
+-- BSSC (Hons.) in Communication, Digital Graphic Communication
+
+*Hong Kong Baptist University*, Hong Kong, 2011 - 2015
+
+<br/>
+
+## Contact Me
+
+[Email](mailto:12051594@life.hkbu.edu.hk)
+<br/>
+[Github](https://github.com/mikemikezhu)
