@@ -32,7 +32,7 @@ Originally from Shenyang, China, I am currently working in Hong Kong as a full s
 
 *Nanyang Technological University*, Singapore, 2013
 
--- BSSC (Hons.) in Communication, Digital Graphic Communication
+-- BSSC (Hons. First Class) in Communication, Digital Graphic Communication
 
 *Hong Kong Baptist University*, Hong Kong, 2011 - 2015
 
