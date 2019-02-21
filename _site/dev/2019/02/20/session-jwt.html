@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Comparison - Session vs JSON Web Token Authentication | Mikemike Zhu.</title>
+<meta name="generator" content="Jekyll v3.7.4" />
+<meta property="og:title" content="Comparison - Session vs JSON Web Token Authentication" />
+<meta name="author" content="Mikemike Zhu" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Abstract" />
+<meta property="og:description" content="Abstract" />
+<link rel="canonical" href="http://localhost:4000/dev/2019/02/20/session-jwt.html" />
+<meta property="og:url" content="http://localhost:4000/dev/2019/02/20/session-jwt.html" />
+<meta property="og:site_name" content="Mikemike Zhu." />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2019-02-20T00:00:00+08:00" />
+<script type="application/ld+json">
+{"description":"Abstract","author":{"@type":"Person","name":"Mikemike Zhu"},"@type":"BlogPosting","url":"http://localhost:4000/dev/2019/02/20/session-jwt.html","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/img/icon.jpg"},"name":"Mikemike Zhu"},"headline":"Comparison - Session vs JSON Web Token Authentication","dateModified":"2019-02-20T00:00:00+08:00","datePublished":"2019-02-20T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/dev/2019/02/20/session-jwt.html"},"@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=4e6127ef9151f908048821727b92e4a21540d78c">
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+    <div class="wrapper">
+        <header>
+            <h1 class="site-title"><a href="http://localhost:4000/">Mikemike Zhu.</a></h1>
+
+            <p>Designer / Developer</p>
+
+            
+            <img class="avatar" src="/assets/img/icon.jpg" alt="Logo" />
+            
+
+            <ul>
+                <li><a href="http://localhost:4000/">Bio</a></li>
+                
+                <li>
+                    <a href="/my_categories/Dev">Dev</a>
+                </li>
+                
+                <li><a href="http://mikemikezhu.me/">Design</a></li>
+            </ul>
+
+            
+        </header>
+        <section>
+
+            <small>20 February 2019</small>
+<h1>Comparison - Session vs JSON Web Token Authentication</h1>
+
+<p class="view">by Mikemike Zhu</p>
+
+<h2 id="abstract">Abstract</h2>
+
+<p>Recently, I am trying both session and JWT (JSON web token) authentication during the development of the backend projects. In this article, I will briefly discuss the difference between these two methods to authenticate users.</p>
+
+<p><br /></p>
+
+<h2 id="why-do-we-need-them">Why do we need them?</h2>
+
+<p>The reason why we need session and JWT authentication is that, <strong>HTTP is stateless</strong>.</p>
+
+<p>For example, suppose that our user has logged in an online system before. Considering that HTTP is stateless, our user may need to login the system every time he makes some requests.
+Hence, we need something to capture such login state, and therefore session and JWT authentication are introduced to solve this problem.</p>
+
+<p>Session and JWT are the techniques to let the server knows <strong>whether the user has been authenticated</strong>, by sending either session id or token with HTTP requests.</p>
+
+<p><br /></p>
+
+<h2 id="what-is-the-difference-of-them">What is the difference of them?</h2>
+
+<h4 id="1-session">1. Session</h4>
+
+<p>In the session based authentication, the server will create a session with session id after the user has logged in. Then the session id will be stored in the cookie. Whenever the user makes some requests, the session id will be sent through the cookie, which allows the server to verify the user identity by comparing the session stored in its memory.</p>
+
+<p><strong>– Advantages:</strong></p>
+
+<ul>
+  <li>The session id will be stored in <strong>HttpOnly cookie</strong>, which means JavaScript can not read our session id from the cookie, because the HttpOnly flag tells the browser that such cookie can only be accessed by the server. This can prevent the malicious JavaScript code to perform <strong>XSS attack</strong>, and therefore secure our service.</li>
+</ul>
+
+<p><strong>– Disadvantages:</strong></p>
+
+<ul>
+  <li>
+    <p>Considering that session is stored in the <strong>memory of the server</strong>, this will increase the memory usage of the server when we have a huge number of users using the system at once.</p>
+  </li>
+  <li>
+    <p>Session will only be stored in the memory of one particular server. This works fine for building small applications. However, if we have multiple servers, others server may not know the session state stored in that particular server, which leads to the <strong>bad scalability</strong>.</p>
+  </li>
+</ul>
+
+<p>In order to solve the above problems, we have to come up with a separate central session storage system that all of the servers have access to. For example, we can have a dedicated server to run a tool like <strong>Redis</strong> for session storage, which can solve the above problems.</p>
+
+<ul>
+  <li>Another vulnerability of session based authentication is that, cookie is vulnerable to <strong>CSRF (Cross-site Request Forgery) attack</strong>. For example, suppose that the user has already logged in the trusted website, with the session id stored in the cookie. Then the user may continue to visit the malicious website. And the malivious website may send some forged requests to server with the specific cookie. As the server can verify the session id stored in the cookie, it will consider the requests as valid, which indeed comes from the malicious website.</li>
+</ul>
+
+<p>In order to protect our service from CSRF attack, we may verify the “Referer” of HTTP header to check the source of the request. However, some browsers such as IE6 allows the modifications on the “Referer” of HTTP header. Alternatively, we can create an “Anti-CSRF token”. If the token from the requests is verified with the token stored in the session, then we may consider the requests as valid.</p>
+
+<h4 id="2-jwt">2. JWT</h4>
+
+<p>In JWT (JSON web token) authentication, the server will create a token with a secret and send it to the client. Usually, the client will store the token locally (e.g. local storage, or even cookie). Then the client will include such token in every HTTP request. The server will verify the identify of user with the token.</p>
+
+<p><strong>– Advantages:</strong></p>
+
+<ul>
+  <li>
+    <p>Considering that, the session is <strong>not</strong> stored in the memory of the server, JWT authentication solves the memory usage problems of session based authentication.</p>
+  </li>
+  <li>
+    <p>In addition, JWT authentication provides the <strong>scalability</strong> if we have multiple servers, because each server only needs to verify the token provided by the user, instead of relying on the session stored in the memory of one particular server.</p>
+  </li>
+</ul>
+
+<p><strong>– Disadvantages:</strong></p>
+
+<ul>
+  <li>Storing JWT token in local storage or session storage in browser is extremely vulnerable to <strong>XSS attack</strong>, because hackers may make use of JavaScript code to get the JWT token from local storage or session storage.</li>
+</ul>
+
+<p><br /></p>
+
+
+
+  <small>tags: <em>session</em> - <em>jwt</em> - <em>spring</em></small>
+
+
+
+        </section>
+    </div>
+    <script src="/assets/js/scale.fix.js"></script>
+    
+</body>
+
+</html>
