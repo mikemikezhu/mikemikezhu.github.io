@@ -248,6 +248,10 @@ a:hover, a:focus { font-weight: normal; text-decoration: underline; }
 
 .category-item a:hover, .category-item a:focus { font-weight: bold; }
 
+.container { display: inline-flex; flex-direction: row; flex-wrap: wrap; }
+
+.container div { margin: 10px 10px 0 0; }
+
 @media print, screen and (max-width: 960px) { header { width: 100%; text-align: center; }
   section { width: 100%; border-width: 1px 0 0 0; }
   header ul { position: static; display: flex; justify-content: center; width: 90%; margin: 0 auto; }

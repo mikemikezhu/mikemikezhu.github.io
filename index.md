@@ -12,13 +12,40 @@ Originally from Shenyang, China, I am currently working in Hong Kong as a full s
 
 *M800 Limited*, Hong Kong, 2016 - 2018
 
+- KPI: A grade in 2017/2018
+
+- SDK framework development for voice call, conference call, as well as instance messaging
+
+- Technical design for push notifications, localizations, and conference call
+
+- CI/CD configuration (Jenkins, SonarQube, FastLane, etc.), code review, and technical document review
+
+- Unit Test for SDK framework (OCMock, Quick, Nimble, etc.)
+
+- Projects: Maaii, White label apps, SDK frameworks 
+(LiveConnectSDK, M800SDKConference, M800UIKit, etc.)
+
+- Clients: TNG Wallet, Geely, Wispi, eCarX, etc.
+
+<br/>
+
 -- Mobile Application Developer (Internship)
 
 *AppUnique*, Hong Kong, 2015
 
+- Mobile and tablet development for IoT apps
+
+- Front-end development
+
+<br/>
+
 -- User Interface Designer (Internship)
 
 *2359 Media*, Singapore, 2014
+
+- UI design for mobile applications
+
+- Promotion materials design for the company
 
 <br/>
 
@@ -32,9 +59,41 @@ Originally from Shenyang, China, I am currently working in Hong Kong as a full s
 
 *Nanyang Technological University*, Singapore, 2013
 
--- BSSC (Hons. First Class) in Communication, Digital Graphic Communication
+-- BSSC (Hons. First Class) in Digital Graphic Communication
 
 *Hong Kong Baptist University*, Hong Kong, 2011 - 2015
+
+<br/>
+
+## Projects
+
+<div class="container">
+    <div>
+        <a href="https://www.m800.com/liveconnect-solution"><img src="../assets/img/bio/project-liveconnect.png" alt="LiveConnect" /></a>
+    </div>
+    <div>
+        <a href="https://www.maaii.com/en/index"><img src="../assets/img/bio/project-maaii.png" alt="Maaii" /></a>
+    </div>
+</div>
+
+<br/>
+
+## Clients
+
+<div class="container">
+    <div>
+        <a href="https://www.tngwallet.hk/en/home"><img src="../assets/img/bio/client-tng.png" alt="TNG Wallet" /></a>
+    </div>
+    <div>
+        <a href="http://global.geely.com/"><img src="../assets/img/bio/client-geely.png" alt="Geely" /></a>
+    </div>
+    <div>
+        <a href="http://www.ecarx.com.cn/"><img src="../assets/img/bio/client-ecarx.png" alt="eCarX" /></a>
+    </div>
+    <div>
+        <a href="http://www.wispiapp.com/"><img src="../assets/img/bio/client-wispi.png" alt="Wispi" /></a>
+    </div>
+</div>
 
 <br/>
 
