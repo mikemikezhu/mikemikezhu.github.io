@@ -97,6 +97,30 @@ Originally from Shenyang, China, I am currently working in Hong Kong as a full s
 
 <br/>
 
+## Awards & Scholarships
+
+-- Honours Project Award
+
+*Hong Kong Baptist University*, Hong Kong, 2015
+
+-- Scholastic Award
+
+*Hong Kong Baptist University*, Hong Kong, 2015
+
+-- Asia One Scholarship
+
+*Hong Kong Baptist University*, Hong Kong, 2014 - 2015
+
+-- Kan Hing Communication Scholarship
+
+*Hong Kong Baptist University*, Hong Kong, 2014 - 2015
+
+-- The Professor Kelly Mao Memorial Scholarship
+
+*Hong Kong Baptist University*, Hong Kong, 2014 - 2015
+
+<br/>
+
 ## Contact Me
 
 [Email](mailto:12051594@life.hkbu.edu.hk)
