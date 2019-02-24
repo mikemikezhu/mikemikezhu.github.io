@@ -115,7 +115,7 @@ Originally from Shenyang, China, I am currently working in Hong Kong as a full s
 
 *Hong Kong Baptist University*, Hong Kong, 2014 - 2015
 
--- The Professor Kelly Mao Memorial Scholarship
+-- The Professor Kelly Kao Memorial Scholarship
 
 *Hong Kong Baptist University*, Hong Kong, 2014 - 2015
 
