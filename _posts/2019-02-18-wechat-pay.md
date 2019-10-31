@@ -243,7 +243,7 @@ private static byte[] getContentBytes(String content, String charset) {
 当我们拿到微信后台发过来的，包含prepay_id的回复的时候，我们需要再次签名。并且将签名后的结果，发送给小程序。
 
 ```java
-// Parse XML server response 
+// Parse XML server response
 ...
 
 String prepayId = response.get("prepay_id").toString();
