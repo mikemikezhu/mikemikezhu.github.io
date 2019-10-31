@@ -8,6 +8,18 @@ Originally from Shenyang, China, I am currently working in Hong Kong as a full s
 
 ## Professions
 
+-- Software Analyst
+
+*Hutchison Telecommunications Hong Kong Holdings (3 Hong Kong)*, Hong Kong, 2019 - 2019
+
+- POS / ePOS system development
+
+- Perform UAT software testing
+
+- Feature enhancements e.g. Coupon redemption, etc.
+
+<br/>
+
 -- Software Engineer
 
 *M800 Limited*, Hong Kong, 2016 - 2018
@@ -68,6 +80,9 @@ Originally from Shenyang, China, I am currently working in Hong Kong as a full s
 ## Projects
 
 <div class="container">
+    <div>
+        <a href="http://www.three.com/"><img src="../assets/img/bio/project-three.png" alt="3 Hong Kong" /></a>
+    </div>
     <div>
         <a href="https://www.m800.com/liveconnect-solution"><img src="../assets/img/bio/project-liveconnect.png" alt="LiveConnect" /></a>
     </div>
