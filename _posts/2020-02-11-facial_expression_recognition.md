@@ -851,4 +851,4 @@ open("FER2013.tflite", "wb").write(tflite_model)
 
 ## Conclusion
 
-To put it in a nutshell, Best Actor is a mobile game which integrates the computer vision technology using Convolutional Neural Network.
+To put it in a nutshell, Best Actor is a mobile game which integrates the computer vision technology using Convolutional Neural Network. Please find my [GitHub Project](https://github.com/mikemikezhu/facial-expression-recognition) to download the project.
