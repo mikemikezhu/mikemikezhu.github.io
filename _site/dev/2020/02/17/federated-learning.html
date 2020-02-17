@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Federated Learning on Facial Expression Recognition | Mikemike Zhu.</title>
+<meta name="generator" content="Jekyll v3.7.4" />
+<meta property="og:title" content="Federated Learning on Facial Expression Recognition" />
+<meta name="author" content="Mikemike Zhu" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Designer / Developer" />
+<meta property="og:description" content="Designer / Developer" />
+<link rel="canonical" href="http://localhost:4000/dev/2020/02/17/federated-learning.html" />
+<meta property="og:url" content="http://localhost:4000/dev/2020/02/17/federated-learning.html" />
+<meta property="og:site_name" content="Mikemike Zhu." />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2020-02-17T00:00:00+08:00" />
+<script type="application/ld+json">
+{"datePublished":"2020-02-17T00:00:00+08:00","dateModified":"2020-02-17T00:00:00+08:00","url":"http://localhost:4000/dev/2020/02/17/federated-learning.html","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/dev/2020/02/17/federated-learning.html"},"publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/img/icon.jpg"},"name":"Mikemike Zhu"},"author":{"@type":"Person","name":"Mikemike Zhu"},"description":"Designer / Developer","@type":"BlogPosting","headline":"Federated Learning on Facial Expression Recognition","@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=74ffb44cb95948e018cc02848db711bf6ab8216d">
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+    <div class="wrapper">
+        <header>
+            <h1 class="site-title"><a href="http://localhost:4000/">Mikemike Zhu.</a></h1>
+
+            <p>Designer / Developer</p>
+
+            
+            <img class="avatar" src="/assets/img/icon.jpg" alt="Logo" />
+            
+
+            <ul>
+                <li><a href="http://localhost:4000/">Bio</a></li>
+                
+                <li>
+                    <a href="/my_categories/Dev">Dev</a>
+                </li>
+                
+                <li><a href="http://mikemikezhu.me/">Design</a></li>
+            </ul>
+
+            
+        </header>
+        <section>
+
+            <small>17 February 2020</small>
+<h1>Federated Learning on Facial Expression Recognition</h1>
+
+<p class="view">by Mikemike Zhu</p>
+
+
+<h2 id="abstract">Abstract</h2>
+
+<p>Recently, I have developed a mobile game, <a href="https://apps.apple.com/cn/app/id1498575047">Best Actor Game</a>, which is based on computer vision model to recognize human facial expression. I have designed the computer vision model using an architecture similar to VGGNet, and the details are described here in this <a href="https://github.com/mikemikezhu/facial-expression-recognition">article</a>. The computer vision model, using Tensorflow Lite, was deployed locally on the mobile device. However, if we allow the face data to be trained locally on user’s device, we may improve our model constantly while protecting user’s data privacy. Therefore, I try to use <strong>federated learning</strong> to re-design the computer vision model to make facial expression prediction. This document will discuss the basic concept of federated learning, as well as how the federated learning is implemented to create a facial expression recognition model with Tensorflow.</p>
+
+<h2 id="federated-learning">Federated Learning</h2>
+
+<p>Federated learning is a decentralized approach which allows the data to be trained locally on user devices (e.g. mobile devices). Specifically, within a large number of user devices, only a fraction of which may be available for training at a given time. Therefore, the available user devices will be used to train the data locally, and compute the update to the shared global model maintained by the server, which will aggregate all the updates from the distributed devices, and compute weight using the <code class="highlighter-rouge">FederatedAveraging</code> algorithm in the following math formula.</p>
+
+<p><img src="https://latex.codecogs.com/gif.latex?w_{t&plus;1}=\sum_{k=1}^K&space;\frac{n_{k}}{n}w^{k}_{t&plus;1}" title="w_{t+1}=\sum_{k=1}^K \frac{n_{k}}{n}w^{k}_{t+1}" /></p>
+
+<p>Considering that modern smartphones have relatively fast processors (e.g. GPUs), the computation becomes essentially free for the federated learning. Therefore, the communication costs dominate during the federated optimization. Based on the research paper from Google, we may reduce the number of rounds of communication required to train a model in the following ways.</p>
+
+<ul>
+  <li><strong>Increase parallelism</strong> by involving more clients to compute the update independently.</li>
+  <li><strong>Increase computation on each client</strong> by allowing each client to perform a more complex calculation between each communication round.</li>
+</ul>
+
+<p>Federated learning has provided the following distinct advantages over the traditional approach to train the data in the data center.</p>
+
+<ul>
+  <li>It helps to <strong>protect user’s data privacy</strong>, considering that the training data (e.g. user’s photo, password, etc.) will only be retained locally on the edge devices.</li>
+  <li>It also helps to <strong>reduce the network latency</strong>. Since the data is trained locally, transporting large training data to the server is not necessary. Only the update of the training result will be communicated between the client and server, which greatly helps to reduce the network latency.</li>
+  <li>It also helps to <strong>reduce the security risks</strong>, since the privacy data is only stored locally, and therefore will not be easily leaked to attackers when there is attacks happening on the cloud, or the communication between client and server (e.g. Man-in-the-middle attack).</li>
+</ul>
+
+<p>Next, I will discuss how the federated learning is implemented to recognize human facial expression by using Tensorflow.</p>
+
+<h3 id="install-packages">Install Packages</h3>
+
+<p>First and foremost, let’s install Tensorflow federated learning package.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Tensorflow federated package </span>
+<span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">tensorflow_federated</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="mi">2</span><span class="o">&gt;&amp;</span><span class="mi">1</span>
+</code></pre></div></div>
+
+<h3 id="download-data">Download Data</h3>
+
+<p>Next, we need to download the dataset to train the computer vision model. Here we use FER2013 dataset in <a href="https://www.kaggle.com/c/challenges-in-representation-learning-facial-expression-recognition-challenge/data">Challenges in Representation Learning: Facial Expression Recognition Challenge</a> in Kaggle. Therefore, let’s configure Kaggle API and download the training dataset.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span>
+
+<span class="c"># Configure kaggle</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="s">'/root/'</span><span class="p">)</span>
+<span class="err">!</span><span class="n">mkdir</span> <span class="o">-</span><span class="n">p</span> <span class="o">.</span><span class="n">kaggle</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="s">'/root/.kaggle'</span><span class="p">)</span>
+<span class="err">!</span><span class="n">wget</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">check</span><span class="o">-</span><span class="n">certificate</span> <span class="s">'https://docs.google.com/uc?export=download&amp;id=1Y-o0TVcjehM8SZB3Nt8U3xkyeQu-Nse-'</span> <span class="o">-</span><span class="n">O</span> <span class="n">kaggle</span><span class="o">.</span><span class="n">json</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="mi">2</span><span class="o">&gt;&amp;</span><span class="mi">1</span>
+<span class="err">!</span><span class="n">ls</span> <span class="o">/</span><span class="n">root</span><span class="o">/.</span><span class="n">kaggle</span>
+
+<span class="c"># Set permissions </span>
+<span class="err">!</span><span class="n">chmod</span> <span class="mi">600</span> <span class="o">/</span><span class="n">root</span><span class="o">/.</span><span class="n">kaggle</span><span class="o">/</span><span class="n">kaggle</span><span class="o">.</span><span class="n">json</span>
+
+<span class="c"># Create data folder</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="s">'/content/'</span><span class="p">)</span>
+<span class="err">!</span><span class="n">rm</span> <span class="o">-</span><span class="n">rf</span> <span class="n">data</span>
+<span class="err">!</span><span class="n">mkdir</span> <span class="n">data</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="s">'data'</span><span class="p">)</span>
+<span class="err">!</span><span class="n">pwd</span>
+
+<span class="c"># Download data</span>
+<span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">kaggle</span>
+<span class="err">!</span><span class="n">kaggle</span> <span class="n">competitions</span> <span class="n">download</span> <span class="o">-</span><span class="n">c</span> <span class="n">challenges</span><span class="o">-</span><span class="ow">in</span><span class="o">-</span><span class="n">representation</span><span class="o">-</span><span class="n">learning</span><span class="o">-</span><span class="n">facial</span><span class="o">-</span><span class="n">expression</span><span class="o">-</span><span class="n">recognition</span><span class="o">-</span><span class="n">challenge</span>
+
+<span class="c"># Unzip data</span>
+<span class="err">!</span><span class="n">unzip</span> <span class="n">train</span><span class="o">.</span><span class="n">csv</span><span class="o">.</span><span class="nb">zip</span> <span class="n">train</span><span class="o">.</span><span class="n">csv</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaggle.json
+/content/data
+Warning: Looks like you're using an outdated API Version, please consider updating (server 1.5.6 / client 1.5.4)
+Downloading example_submission.csv to /content/data
+  0% 0.00/7.01k [00:00&lt;?, ?B/s]
+100% 7.01k/7.01k [00:00&lt;00:00, 5.90MB/s]
+Downloading icml_face_data.csv.zip to /content/data
+ 84% 81.0M/96.6M [00:00&lt;00:00, 75.3MB/s]
+100% 96.6M/96.6M [00:00&lt;00:00, 117MB/s] 
+Downloading test.csv.zip to /content/data
+ 47% 9.00M/19.3M [00:00&lt;00:00, 42.1MB/s]
+100% 19.3M/19.3M [00:00&lt;00:00, 62.9MB/s]
+Downloading fer2013.tar.gz to /content/data
+ 94% 86.0M/92.0M [00:00&lt;00:00, 84.7MB/s]
+100% 92.0M/92.0M [00:00&lt;00:00, 126MB/s] 
+Downloading train.csv.zip to /content/data
+ 85% 66.0M/77.3M [00:00&lt;00:00, 76.3MB/s]
+100% 77.3M/77.3M [00:00&lt;00:00, 121MB/s] 
+Archive:  train.csv.zip
+  inflating: train.csv               
+</code></pre></div></div>
+
+<h3 id="load-data">Load Data</h3>
+
+<p>The image dataset downloaded from Kaggle is in “.csv” file format. Therefore, we need to load the “train.csv” file, and convert it to numpy array. The training images and labels are saved in “x_train” and “y_train” respectively.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="n">train_images</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">train_labels</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="n">categories_count</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">'train.csv'</span><span class="p">)</span> <span class="k">as</span> <span class="n">train</span><span class="p">:</span>
+
+    <span class="c"># Read train.csv file</span>
+    <span class="n">csv_reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+    <span class="nb">next</span><span class="p">(</span><span class="n">csv_reader</span><span class="p">)</span>  <span class="c"># Skip the header</span>
+
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">csv_reader</span><span class="p">:</span>
+
+        <span class="c"># Append image</span>
+        <span class="n">pixels_str</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">pixels_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pixels_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">' '</span><span class="p">)]</span>
+        <span class="n">pixels_list</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pixels_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s">'uint8'</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">pixels_list</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mi">48</span><span class="p">))</span>
+        <span class="n">train_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+
+        <span class="n">label_str</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c"># Calculate categories count</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">label_str</span> <span class="ow">in</span> <span class="n">categories_count</span><span class="p">:</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="n">categories_count</span><span class="p">[</span><span class="n">label_str</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">categories_count</span><span class="p">[</span><span class="n">label_str</span><span class="p">]</span> <span class="o">=</span> <span class="n">count</span>
+
+        <span class="c"># Append label</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">label_str</span><span class="p">)</span>
+        <span class="n">train_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+
+<span class="c"># Create numpy array of train images and labels</span>
+<span class="n">x_train</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">train_images</span><span class="p">)</span>
+<span class="n">y_train</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">train_labels</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">'x_train shape: {0}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'y_train shape: {0}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">y_train</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>x_train shape: (28709, 48, 48)
+y_train shape: (28709,)
+</code></pre></div></div>
+
+<p>Then, let’s show one of the images in the dataset. Each image is grey-scale and contains 48 x 48 pixels.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+
+<span class="c"># Show some image</span>
+<span class="n">image</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">label</span> <span class="o">=</span> <span class="n">y_train</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">'Label is: '</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">'gray'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Label is: 0
+
+
+
+
+
+&lt;matplotlib.image.AxesImage at 0x7fe883d18dd8&gt;
+</code></pre></div></div>
+
+<p><img src="/assets/img/2020-02-17-federated-learning/federated_learning_17_2.png" alt="png" /></p>
+
+<h3 id="preprocess-data">Preprocess Data</h3>
+
+<p>Next, we need to preprocess and prepare the federated data. Since the training data will be distributed in each user’s local device, let’s assume we have 3 clients, and each client has 5 images to train, in order to simulate the scenario.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">%</span><span class="n">tensorflow_version</span> <span class="mf">2.</span><span class="n">x</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="n">tf</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">'Tensorflow version: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">__version__</span><span class="p">))</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow</span> <span class="kn">import</span> <span class="n">reshape</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+
+<span class="s">"""
+Assume we have 3 clients, each client has 5 images to train
+"""</span>
+
+<span class="c"># Assume each client has 5 images to train</span>
+<span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">=</span> <span class="mi">5</span>
+
+<span class="c"># Train 3 times for each image</span>
+<span class="n">TRAINING_EPOCHS</span> <span class="o">=</span> <span class="mi">3</span>
+
+<span class="c"># Prepare training data for each client</span>
+<span class="n">x_client_1</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="mi">0</span> <span class="p">:</span> <span class="n">TRAIN_DATA_PER_CLIENT</span><span class="p">]</span>
+<span class="n">y_client_1</span> <span class="o">=</span> <span class="n">y_train</span><span class="p">[</span><span class="mi">0</span> <span class="p">:</span> <span class="n">TRAIN_DATA_PER_CLIENT</span><span class="p">]</span>
+
+<span class="n">x_client_2</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="p">:</span> <span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span>
+<span class="n">y_client_2</span> <span class="o">=</span> <span class="n">y_train</span><span class="p">[</span><span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="p">:</span> <span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span>
+
+<span class="n">x_client_3</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">2</span> <span class="p">:</span> <span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">3</span><span class="p">]</span>
+<span class="n">y_client_3</span> <span class="o">=</span> <span class="n">y_train</span><span class="p">[</span><span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">2</span> <span class="p">:</span> <span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">3</span><span class="p">]</span>
+<span class="k">print</span><span class="p">(</span><span class="n">x_client_3</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="c"># Prepare test data</span>
+<span class="n">x_test</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">3</span> <span class="p">:</span> <span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">4</span><span class="p">]</span>
+<span class="n">y_test</span> <span class="o">=</span> <span class="n">y_train</span><span class="p">[</span><span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">3</span> <span class="p">:</span> <span class="n">TRAIN_DATA_PER_CLIENT</span> <span class="o">*</span> <span class="mi">4</span><span class="p">]</span>
+
+<span class="c"># Create federated data</span>
+<span class="k">def</span> <span class="nf">create_federated_data</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">):</span>
+
+    <span class="n">orderDict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">pixels_list</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="n">x_train</span> <span class="o">=</span> <span class="n">x_train</span> <span class="o">/</span> <span class="mf">255.0</span>
+    <span class="n">x_train</span> <span class="o">=</span> <span class="n">x_train</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_train</span><span class="p">),</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">orderDict</span><span class="p">[</span><span class="s">'x'</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x_train</span><span class="p">)</span>
+    <span class="n">orderDict</span><span class="p">[</span><span class="s">'y'</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_train</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="n">orderDict</span><span class="p">)</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">batch</span>
+
+<span class="n">federated_data_client_1</span> <span class="o">=</span> <span class="p">[</span><span class="n">create_federated_data</span><span class="p">(</span><span class="n">x_client_1</span><span class="p">,</span> <span class="n">y_client_1</span><span class="p">)</span> <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">TRAINING_EPOCHS</span><span class="p">)]</span>
+<span class="n">federated_data_client_2</span> <span class="o">=</span> <span class="p">[</span><span class="n">create_federated_data</span><span class="p">(</span><span class="n">x_client_2</span><span class="p">,</span> <span class="n">y_client_2</span><span class="p">)</span> <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">TRAINING_EPOCHS</span><span class="p">)]</span>
+<span class="n">federated_data_client_3</span> <span class="o">=</span> <span class="p">[</span><span class="n">create_federated_data</span><span class="p">(</span><span class="n">x_client_3</span><span class="p">,</span> <span class="n">y_client_3</span><span class="p">)</span> <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">TRAINING_EPOCHS</span><span class="p">)]</span>
+
+<span class="n">federated_data_test</span> <span class="o">=</span> <span class="p">[</span><span class="n">create_federated_data</span><span class="p">(</span><span class="n">x_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span> <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">TRAINING_EPOCHS</span><span class="p">)]</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">'Total training epochs: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">federated_data_client_3</span><span class="p">)))</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Tensorflow version: 2.1.0
+(5, 48, 48)
+Total training epochs: 3
+</code></pre></div></div>
+
+<h3 id="create-model">Create Model</h3>
+
+<p>By referring to VGGNet architecture, we have designed the computer vision model with several stacks of layers. The model will have the following components:</p>
+<ul>
+  <li>Convolutional layers: These layers are the building blocks of our architecture, which learns the image feature by computing the dot product between the weights and the small region on the image. Similar to VGGNet architecture, all the convolutional layers are designed with 3 x 3 kernal size, and several filters.</li>
+  <li>Activation functions: The activation functions are those functions which are applied to the outputs of the layers in the network. Specifically, we use ReLU (Rectified Linear Unit) activation function to increase the non-linearity of the network. Besides, a Softmax function will be used to compute the probability of each category.</li>
+  <li>Pooling layers: These layers will down-sample the image to reduce the spatial data and extract features. In our model, we will use Max Pooling with A 3 x 3 pooling size and a 2 x 2 stride.</li>
+  <li>Dense layers: The dense layers are stacked as the fully connected layers of the network, which take in the feature data from the previous convolutional layers and perform decision making.</li>
+  <li>Dropout layers: The dropout layers are used to prevent over-fitting when training the model.</li>
+  <li>Batch normalization: This technique can be used to speed up learning by normalizing the output of the previous activation layer.</li>
+</ul>
+
+<p>The diagram of the model is displayed as follows.</p>
+
+<p><img src="https://drive.google.com/uc?id=1jjORxRgvEDDMLZ-mX5JkCnUWUFn7IHpL" alt="cnn" /></p>
+
+<p>Our model contains 5 stacks of layers. In each of the first 4 stacks of layers, there are 2 convolutional layer followed by 1 pooling layer. Besides, we use batch normalization to speed up training and dropout to prevent over-fitting. Then we have one stack of 3 fully-connected layers, followed by a Softmax activation function, which generates the probability of the facial expression categories. Finally, we compile our model using Adam optimizer with a certain learning rate. Considering that we are dealing with classification issue, we will use <code class="highlighter-rouge">sparse_categorical_crossentropy</code> as the loss function.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">tensorflow.keras.models</span> <span class="kn">import</span> <span class="n">Sequential</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Conv2D</span><span class="p">,</span> <span class="n">BatchNormalization</span><span class="p">,</span> <span class="n">MaxPool2D</span><span class="p">,</span> <span class="n">Dropout</span><span class="p">,</span> <span class="n">Flatten</span><span class="p">,</span> <span class="n">Dense</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.keras.optimizers</span> <span class="kn">import</span> <span class="n">SGD</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.losses</span> <span class="kn">import</span> <span class="n">SparseCategoricalCrossentropy</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.metrics</span> <span class="kn">import</span> <span class="n">SparseCategoricalAccuracy</span>
+
+<span class="k">def</span> <span class="nf">create_keras_model</span><span class="p">():</span>
+
+    <span class="c"># Create keras model</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">Sequential</span><span class="p">()</span>
+
+    <span class="c"># 1st convolution layer</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">BatchNormalization</span><span class="p">())</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s">'same'</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">BatchNormalization</span><span class="p">())</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">MaxPool2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.3</span><span class="p">))</span>
+
+    <span class="c"># 2nd convolution layer</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s">'same'</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">BatchNormalization</span><span class="p">())</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s">'same'</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">BatchNormalization</span><span class="p">())</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">MaxPool2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.3</span><span class="p">))</span>
+
+    <span class="c"># 3rd convolution layer</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s">'same'</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">BatchNormalization</span><span class="p">())</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s">'same'</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">BatchNormalization</span><span class="p">())</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">MaxPool2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.3</span><span class="p">))</span>
+
+    <span class="c"># 4th convolution layer</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s">'same'</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">BatchNormalization</span><span class="p">())</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s">'same'</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">BatchNormalization</span><span class="p">())</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">MaxPool2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.3</span><span class="p">))</span>
+
+    <span class="c"># Fully connected layer</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Flatten</span><span class="p">())</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dense</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.3</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dense</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.3</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dense</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.3</span><span class="p">))</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dense</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'softmax'</span><span class="p">))</span>
+
+    <span class="c"># Compile the model</span>
+    <span class="n">model</span><span class="o">.</span><span class="nb">compile</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="n">SparseCategoricalCrossentropy</span><span class="p">(),</span>
+                  <span class="n">optimizer</span><span class="o">=</span><span class="n">SGD</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.02</span><span class="p">),</span>
+                  <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">SparseCategoricalAccuracy</span><span class="p">()])</span>
+    
+    <span class="k">return</span> <span class="n">model</span>
+
+<span class="c"># Summary model</span>
+<span class="n">keras_model</span> <span class="o">=</span> <span class="n">create_keras_model</span><span class="p">()</span>
+<span class="n">keras_model</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv2d (Conv2D)              (None, 46, 46, 64)        640       
+_________________________________________________________________
+batch_normalization (BatchNo (None, 46, 46, 64)        256       
+_________________________________________________________________
+conv2d_1 (Conv2D)            (None, 46, 46, 64)        36928     
+_________________________________________________________________
+batch_normalization_1 (Batch (None, 46, 46, 64)        256       
+_________________________________________________________________
+max_pooling2d (MaxPooling2D) (None, 22, 22, 64)        0         
+_________________________________________________________________
+dropout (Dropout)            (None, 22, 22, 64)        0         
+_________________________________________________________________
+conv2d_2 (Conv2D)            (None, 22, 22, 128)       73856     
+_________________________________________________________________
+batch_normalization_2 (Batch (None, 22, 22, 128)       512       
+_________________________________________________________________
+conv2d_3 (Conv2D)            (None, 22, 22, 128)       147584    
+_________________________________________________________________
+batch_normalization_3 (Batch (None, 22, 22, 128)       512       
+_________________________________________________________________
+max_pooling2d_1 (MaxPooling2 (None, 10, 10, 128)       0         
+_________________________________________________________________
+dropout_1 (Dropout)          (None, 10, 10, 128)       0         
+_________________________________________________________________
+conv2d_4 (Conv2D)            (None, 10, 10, 256)       295168    
+_________________________________________________________________
+batch_normalization_4 (Batch (None, 10, 10, 256)       1024      
+_________________________________________________________________
+conv2d_5 (Conv2D)            (None, 10, 10, 256)       590080    
+_________________________________________________________________
+batch_normalization_5 (Batch (None, 10, 10, 256)       1024      
+_________________________________________________________________
+max_pooling2d_2 (MaxPooling2 (None, 4, 4, 256)         0         
+_________________________________________________________________
+dropout_2 (Dropout)          (None, 4, 4, 256)         0         
+_________________________________________________________________
+conv2d_6 (Conv2D)            (None, 4, 4, 512)         1180160   
+_________________________________________________________________
+batch_normalization_6 (Batch (None, 4, 4, 512)         2048      
+_________________________________________________________________
+conv2d_7 (Conv2D)            (None, 4, 4, 512)         2359808   
+_________________________________________________________________
+batch_normalization_7 (Batch (None, 4, 4, 512)         2048      
+_________________________________________________________________
+max_pooling2d_3 (MaxPooling2 (None, 1, 1, 512)         0         
+_________________________________________________________________
+dropout_3 (Dropout)          (None, 1, 1, 512)         0         
+_________________________________________________________________
+flatten (Flatten)            (None, 512)               0         
+_________________________________________________________________
+dense (Dense)                (None, 512)               262656    
+_________________________________________________________________
+dropout_4 (Dropout)          (None, 512)               0         
+_________________________________________________________________
+dense_1 (Dense)              (None, 256)               131328    
+_________________________________________________________________
+dropout_5 (Dropout)          (None, 256)               0         
+_________________________________________________________________
+dense_2 (Dense)              (None, 64)                16448     
+_________________________________________________________________
+dropout_6 (Dropout)          (None, 64)                0         
+_________________________________________________________________
+dense_3 (Dense)              (None, 7)                 455       
+=================================================================
+Total params: 5,102,791
+Trainable params: 5,098,951
+Non-trainable params: 3,840
+_________________________________________________________________
+</code></pre></div></div>
+
+<p>Next, wrap our compiled Keras model in an instance of the <code class="highlighter-rouge">tff.learning.Model</code> interface, in order to use the Tensorflow federated learning.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">tensorflow_federated</span> <span class="k">as</span> <span class="n">tff</span>
+
+<span class="c"># Create dummy batch</span>
+<span class="n">dummy_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="nb">iter</span><span class="p">(</span><span class="n">federated_data_client_1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="nb">next</span><span class="p">())</span>
+<span class="k">print</span><span class="p">(</span><span class="n">dummy_batch</span><span class="p">[</span><span class="s">'x'</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">create_federated_model</span><span class="p">():</span>
+
+    <span class="c"># Create keras model</span>
+    <span class="n">keras_model</span> <span class="o">=</span> <span class="n">create_keras_model</span><span class="p">()</span>
+    
+    <span class="c"># Convert keras model to federated model</span>
+    <span class="k">return</span> <span class="n">tff</span><span class="o">.</span><span class="n">learning</span><span class="o">.</span><span class="n">from_compiled_keras_model</span><span class="p">(</span><span class="n">keras_model</span><span class="p">,</span> <span class="n">dummy_batch</span><span class="p">)</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(5, 48, 48, 1)
+</code></pre></div></div>
+
+<h3 id="train-model">Train Model</h3>
+
+<p>Then, we need to build federated averate process and start training.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Build federated average process</span>
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">tff</span><span class="o">.</span><span class="n">learning</span><span class="o">.</span><span class="n">build_federated_averaging_process</span><span class="p">(</span><span class="n">create_federated_model</span><span class="p">)</span>
+
+<span class="c"># Create initial state</span>
+<span class="n">train_state</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>WARNING:tensorflow:From /tensorflow-2.1.0/python3.6/tensorflow_core/python/ops/resource_variable_ops.py:1635: calling BaseResourceVariable.__init__ (from tensorflow.python.ops.resource_variable_ops) with constraint is deprecated and will be removed in a future version.
+Instructions for updating:
+If using Keras pass *_constraint arguments to layers.
+WARNING:tensorflow:Layer conv2d is casting an input tensor from dtype float64 to the layer's dtype of float32, which is new behavior in TensorFlow 2.  The layer has dtype float32 because it's dtype defaults to floatx.
+
+If you intended to run this layer in float32, you can safely ignore this warning. If in doubt, this warning is likely only an issue if you are porting a TensorFlow 1.X model to TensorFlow 2.
+
+To change all layers to have dtype float64 by default, call `tf.keras.backend.set_floatx('float64')`. To change just this layer, pass dtype='float64' to the layer constructor. If you are the author of this layer, you can disable autocasting by passing autocast=False to the base Layer constructor.
+
+WARNING:tensorflow:Layer conv2d is casting an input tensor from dtype float64 to the layer's dtype of float32, which is new behavior in TensorFlow 2.  The layer has dtype float32 because it's dtype defaults to floatx.
+
+If you intended to run this layer in float32, you can safely ignore this warning. If in doubt, this warning is likely only an issue if you are porting a TensorFlow 1.X model to TensorFlow 2.
+
+To change all layers to have dtype float64 by default, call `tf.keras.backend.set_floatx('float64')`. To change just this layer, pass dtype='float64' to the layer constructor. If you are the author of this layer, you can disable autocasting by passing autocast=False to the base Layer constructor.
+
+WARNING:tensorflow:Layer conv2d is casting an input tensor from dtype float64 to the layer's dtype of float32, which is new behavior in TensorFlow 2.  The layer has dtype float32 because it's dtype defaults to floatx.
+
+If you intended to run this layer in float32, you can safely ignore this warning. If in doubt, this warning is likely only an issue if you are porting a TensorFlow 1.X model to TensorFlow 2.
+
+To change all layers to have dtype float64 by default, call `tf.keras.backend.set_floatx('float64')`. To change just this layer, pass dtype='float64' to the layer constructor. If you are the author of this layer, you can disable autocasting by passing autocast=False to the base Layer constructor.
+
+WARNING:tensorflow:Layer conv2d is casting an input tensor from dtype float64 to the layer's dtype of float32, which is new behavior in TensorFlow 2.  The layer has dtype float32 because it's dtype defaults to floatx.
+
+If you intended to run this layer in float32, you can safely ignore this warning. If in doubt, this warning is likely only an issue if you are porting a TensorFlow 1.X model to TensorFlow 2.
+
+To change all layers to have dtype float64 by default, call `tf.keras.backend.set_floatx('float64')`. To change just this layer, pass dtype='float64' to the layer constructor. If you are the author of this layer, you can disable autocasting by passing autocast=False to the base Layer constructor.
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Train on federated model</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'========== Train on Local Device of Client 1 =========='</span><span class="p">)</span>
+
+<span class="n">history_accuracy_1</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">history_loss_1</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">for</span> <span class="n">round_num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">):</span>
+    <span class="n">train_state</span><span class="p">,</span> <span class="n">train_metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="nb">next</span><span class="p">(</span><span class="n">train_state</span><span class="p">,</span> <span class="n">federated_data_client_1</span><span class="p">)</span>
+    <span class="n">history_accuracy_1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_metrics</span><span class="o">.</span><span class="n">sparse_categorical_accuracy</span><span class="p">)</span>
+    <span class="n">history_loss_1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_metrics</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'round {:2d}, metrics={}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">round_num</span><span class="p">,</span> <span class="n">train_metrics</span><span class="p">))</span>
+
+<span class="c"># Show accuracy diagram</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Model Accuracy for Client 1'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">history_accuracy_1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'accuracy'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Epoch'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'Accuracy'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c"># Show loss diagram</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Model Loss for Client 1'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">history_loss_1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'loss'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Epoch'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'Loss'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>========== Train on Local Device of Client 1 ==========
+round  0, metrics=&lt;sparse_categorical_accuracy=0.3333333432674408,loss=3.2094497680664062&gt;
+round  1, metrics=&lt;sparse_categorical_accuracy=0.7333333492279053,loss=0.9364567995071411&gt;
+round  2, metrics=&lt;sparse_categorical_accuracy=0.6666666865348816,loss=0.812284529209137&gt;
+round  3, metrics=&lt;sparse_categorical_accuracy=0.6000000238418579,loss=0.8869265913963318&gt;
+round  4, metrics=&lt;sparse_categorical_accuracy=0.6666666865348816,loss=0.6965619325637817&gt;
+round  5, metrics=&lt;sparse_categorical_accuracy=0.800000011920929,loss=0.5766454935073853&gt;
+</code></pre></div></div>
+
+<p><img src="/assets/img/2020-02-17-federated-learning/federated_learning_29_1.png" alt="png" /></p>
+
+<p><img src="/assets/img/2020-02-17-federated-learning/federated_learning_29_2.png" alt="png" /></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Train on federated model</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'========== Train on Local Device of Client 2 =========='</span><span class="p">)</span>
+
+<span class="n">history_accuracy_2</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">history_loss_2</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">for</span> <span class="n">round_num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">):</span>
+    <span class="n">train_state</span><span class="p">,</span> <span class="n">train_metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="nb">next</span><span class="p">(</span><span class="n">train_state</span><span class="p">,</span> <span class="n">federated_data_client_2</span><span class="p">)</span>
+    <span class="n">history_accuracy_2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_metrics</span><span class="o">.</span><span class="n">sparse_categorical_accuracy</span><span class="p">)</span>
+    <span class="n">history_loss_2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_metrics</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'round {:2d}, metrics={}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">round_num</span><span class="p">,</span> <span class="n">train_metrics</span><span class="p">))</span>
+
+<span class="c"># Show accuracy diagram</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Model Accuracy for Client 2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">history_accuracy_2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'accuracy'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Epoch'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'Accuracy'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c"># Show loss diagram</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Model Loss for Client 2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">history_loss_2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'loss'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Epoch'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'Loss'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>========== Train on Local Device of Client 2 ==========
+round  0, metrics=&lt;sparse_categorical_accuracy=0.06666667014360428,loss=8.141902923583984&gt;
+round  1, metrics=&lt;sparse_categorical_accuracy=0.20000000298023224,loss=1.9447388648986816&gt;
+round  2, metrics=&lt;sparse_categorical_accuracy=0.800000011920929,loss=0.5845308899879456&gt;
+round  3, metrics=&lt;sparse_categorical_accuracy=0.800000011920929,loss=0.49472060799598694&gt;
+round  4, metrics=&lt;sparse_categorical_accuracy=0.7333333492279053,loss=0.5940064787864685&gt;
+round  5, metrics=&lt;sparse_categorical_accuracy=0.8666666746139526,loss=0.39928290247917175&gt;
+</code></pre></div></div>
+
+<p><img src="/assets/img/2020-02-17-federated-learning/federated_learning_30_1.png" alt="png" /></p>
+
+<p><img src="/assets/img/2020-02-17-federated-learning/federated_learning_30_2.png" alt="png" /></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Train on federated model</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'========== Train on Local Device of Client 3 =========='</span><span class="p">)</span>
+
+<span class="n">history_accuracy_3</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">history_loss_3</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">for</span> <span class="n">round_num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">):</span>
+    <span class="n">train_state</span><span class="p">,</span> <span class="n">train_metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="nb">next</span><span class="p">(</span><span class="n">train_state</span><span class="p">,</span> <span class="n">federated_data_client_3</span><span class="p">)</span>
+    <span class="n">history_accuracy_3</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_metrics</span><span class="o">.</span><span class="n">sparse_categorical_accuracy</span><span class="p">)</span>
+    <span class="n">history_loss_3</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_metrics</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'round {:2d}, metrics={}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">round_num</span><span class="p">,</span> <span class="n">train_metrics</span><span class="p">))</span>
+
+<span class="c"># Show accuracy diagram</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Model Accuracy for Client 3'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">history_accuracy_3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'accuracy'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Epoch'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'Accuracy'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c"># Show loss diagram</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Model Loss for Client 3'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">history_loss_3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'loss'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Epoch'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'Loss'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>========== Train on Local Device of Client 3 ==========
+round  0, metrics=&lt;sparse_categorical_accuracy=0.0,loss=5.371275901794434&gt;
+round  1, metrics=&lt;sparse_categorical_accuracy=0.3333333432674408,loss=2.1037437915802&gt;
+round  2, metrics=&lt;sparse_categorical_accuracy=0.6000000238418579,loss=1.1378229856491089&gt;
+round  3, metrics=&lt;sparse_categorical_accuracy=0.6000000238418579,loss=1.1078845262527466&gt;
+round  4, metrics=&lt;sparse_categorical_accuracy=0.7333333492279053,loss=0.6068843603134155&gt;
+round  5, metrics=&lt;sparse_categorical_accuracy=1.0,loss=0.2441573590040207&gt;
+</code></pre></div></div>
+
+<p><img src="/assets/img/2020-02-17-federated-learning/federated_learning_31_1.png" alt="png" /></p>
+
+<p><img src="/assets/img/2020-02-17-federated-learning/federated_learning_31_2.png" alt="png" /></p>
+
+<h3 id="evaluate-model">Evaluate Model</h3>
+
+<p>Last but not least, let’s evaluate the model after federated training process.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">evaluator</span> <span class="o">=</span> <span class="n">tff</span><span class="o">.</span><span class="n">learning</span><span class="o">.</span><span class="n">build_federated_evaluation</span><span class="p">(</span><span class="n">create_federated_model</span><span class="p">)</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>WARNING:tensorflow:Layer conv2d is casting an input tensor from dtype float64 to the layer's dtype of float32, which is new behavior in TensorFlow 2.  The layer has dtype float32 because it's dtype defaults to floatx.
+
+If you intended to run this layer in float32, you can safely ignore this warning. If in doubt, this warning is likely only an issue if you are porting a TensorFlow 1.X model to TensorFlow 2.
+
+To change all layers to have dtype float64 by default, call `tf.keras.backend.set_floatx('float64')`. To change just this layer, pass dtype='float64' to the layer constructor. If you are the author of this layer, you can disable autocasting by passing autocast=False to the base Layer constructor.
+
+WARNING:tensorflow:Layer conv2d is casting an input tensor from dtype float64 to the layer's dtype of float32, which is new behavior in TensorFlow 2.  The layer has dtype float32 because it's dtype defaults to floatx.
+
+If you intended to run this layer in float32, you can safely ignore this warning. If in doubt, this warning is likely only an issue if you are porting a TensorFlow 1.X model to TensorFlow 2.
+
+To change all layers to have dtype float64 by default, call `tf.keras.backend.set_floatx('float64')`. To change just this layer, pass dtype='float64' to the layer constructor. If you are the author of this layer, you can disable autocasting by passing autocast=False to the base Layer constructor.
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">test_metrics</span> <span class="o">=</span> <span class="n">evaluator</span><span class="p">(</span><span class="n">train_state</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">federated_data_test</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">test_metrics</span><span class="p">)</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;sparse_categorical_accuracy=0.20000000298023224,loss=6.025786399841309&gt;
+</code></pre></div></div>
+
+<h2 id="further-thinking">Further Thinking</h2>
+
+<p>During the federated training process, I have come up with the following thoughts which might consider to improve the federated training in the future.</p>
+
+<ul>
+  <li>Early stopping on federated training:</li>
+</ul>
+
+<p><strong>Early stopping</strong> strategy is generally used to stop the training process when there is no obvious improvement in the validation process. Therefore, I would suggest that early stopping shall also be integrated in the federated training process. For example, the shared model in the centralized server may reject the client’s update when the validation process reaches a certain plateau.</p>
+
+<ul>
+  <li>Centralized server handling upon receiving large amount of local update:</li>
+</ul>
+
+<p>There is a shared model in the centralized server constantly receiving the update from the clients. However, if there are multiple clients simultaneously update to the model of the centralized server, it might significantly increase the burder of the server load. Therefore, I would suggest to use a <strong>Message Queue</strong> (e.g. RabbitMQ, or Kafka) to reduce server load. Besides, instead of using one shared model in one single server, we could copy several instances of models in multiple paralleled servers, and compute the model update in parallel using <strong>Load Balancing</strong> techniques.</p>
+
+<ul>
+  <li>Future application of federate learning:</li>
+</ul>
+
+<p>We may also consider to perform federated learning in distributed devices other than user devices (e.g. mobile devices). For example, a <strong>Content Delivery Network (CDN)</strong> is generally used to provide fast internet delivery through a geographically distributed group of servers. Therefore, I would suggest that we may also conduct machine learning training in these servers in the CDN network, and inform the model update to other server nodes by using <strong>Gossip Protocol</strong> strategy.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>To put it in a nutshell, this document has introduced the concept of federated learning, and the implementation of federated training to create a computer vision model for facial expression recognition. The code implementation can be referred to my <a href="https://github.com/mikemikezhu/federated-learning-facial-expression-recognition">GitHub</a>.</p>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+  <li><a href="https://arxiv.org/pdf/1602.05629.pdf">Communication-Efficient Learning of Deep Networks from Decentralized Data</a></li>
+  <li><a href="https://www.tensorflow.org/federated/tutorials/federated_learning_for_image_classification#evaluation">Federated Learning for Image Classification</a></li>
+  <li><a href="https://www.tensorflow.org/federated">TensorFlow Federated: Machine Learning on Decentralized Data</a></li>
+  <li><a href="https://mikemikezhu.github.io/dev/2020/02/11/facial_expression_recognition.html">Facial Expression Recognition Challenge using Convolutional Neural Network</a></li>
+  <li><a href="https://www.kaggle.com/c/challenges-in-representation-learning-facial-expression-recognition-challenge/data">Challenges in Representation Learning: Facial Expression Recognition Challenge</a></li>
+  <li><a href="https://apps.apple.com/cn/app/id1498575047">Best Actor Game</a></li>
+  <li><a href="https://people.cs.umass.edu/~ramesh/Site/PUBLICATIONS_files/DMPPSW02.pdf">Globally Distributed Content Delivery</a></li>
+  <li><a href="https://en.wikipedia.org/wiki/Gossip_protocol">Gossip Protocol</a></li>
+  <li><a href="https://en.wikipedia.org/wiki/Early_stopping">Early Stopping</a></li>
+  <li><a href="https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19860014876.pdf">Performance Tradeoffs in Static and Dynamic Load Balancing Strategies</a></li>
+</ul>
+
+
+
+  <small>tags: <em>machine_learning</em> - <em>federated_learning</em></small>
+
+
+
+        </section>
+    </div>
+    <script src="/assets/js/scale.fix.js"></script>
+    
+</body>
+
+</html>
