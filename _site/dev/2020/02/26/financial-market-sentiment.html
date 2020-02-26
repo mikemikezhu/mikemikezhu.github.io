@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Quantitative Trading Model based on Financial Market Sentiment | Mikemike Zhu.</title>
+<meta name="generator" content="Jekyll v3.7.4" />
+<meta property="og:title" content="Quantitative Trading Model based on Financial Market Sentiment" />
+<meta name="author" content="Mikemike Zhu" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Designer / Developer" />
+<meta property="og:description" content="Designer / Developer" />
+<link rel="canonical" href="http://localhost:4000/dev/2020/02/26/financial-market-sentiment.html" />
+<meta property="og:url" content="http://localhost:4000/dev/2020/02/26/financial-market-sentiment.html" />
+<meta property="og:site_name" content="Mikemike Zhu." />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2020-02-26T00:00:00+08:00" />
+<script type="application/ld+json">
+{"datePublished":"2020-02-26T00:00:00+08:00","dateModified":"2020-02-26T00:00:00+08:00","url":"http://localhost:4000/dev/2020/02/26/financial-market-sentiment.html","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/dev/2020/02/26/financial-market-sentiment.html"},"publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/img/icon.jpg"},"name":"Mikemike Zhu"},"author":{"@type":"Person","name":"Mikemike Zhu"},"description":"Designer / Developer","@type":"BlogPosting","headline":"Quantitative Trading Model based on Financial Market Sentiment","@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=92889640675b13ee140d0a02800a911444fda676">
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+    <div class="wrapper">
+        <header>
+            <h1 class="site-title"><a href="http://localhost:4000/">Mikemike Zhu.</a></h1>
+
+            <p>Designer / Developer</p>
+
+            
+            <img class="avatar" src="/assets/img/icon.jpg" alt="Logo" />
+            
+
+            <ul>
+                <li><a href="http://localhost:4000/">Bio</a></li>
+                
+                <li>
+                    <a href="/my_categories/Dev">Dev</a>
+                </li>
+                
+                <li><a href="http://mikemikezhu.me/">Design</a></li>
+            </ul>
+
+            
+        </header>
+        <section>
+
+            <small>26 February 2020</small>
+<h1>Quantitative Trading Model based on Financial Market Sentiment</h1>
+
+<p class="view">by Mikemike Zhu</p>
+
+
+<h2 id="abstract--概要">Abstract / 概要</h2>
+
+<p>Based on the Efficient-market hypothesis (EFH), the stock price reflects all the available information, such as the piece of news published in a newspaper, which makes it extremely hard to predict the stock trend. This notebook has introduced a quantitative trading model based on financial market sentiment.</p>
+
+<p>根据有效市场假说（EFH），股票指数的涨跌会受到新闻消息的刺激，从而使得较长期的股票指数预测较为困难。为了解决此问题，本文构建一个基于市场情绪平稳度的量化交易模型。</p>
+
+<h2 id="methodology--方法">Methodology / 方法</h2>
+
+<h3 id="data-preparation--数据准备">Data Preparation / 数据准备</h3>
+
+<p>First and foremost, we will declare the constants to be used for the quantitative trading model, which are demonstrated as follows.</p>
+<ul>
+  <li><code class="highlighter-rouge">OBSERVATION_WINDOW_SIZE</code>: The observation window size is the period of time which is used to estimate the financial market sentiment. Based on the research, we will choose the first 50 min after the market is open as the observation window size.</li>
+  <li><code class="highlighter-rouge">MARKET_SENTIMENT_THRESHOLD</code>: The market sentiment threshold is defined as a standard of the volatility of the stock market. Specifically, if the market sentiment is larger than the threshold, then we can say that the stock market is volatile. Otherwise, the stock market is considered to be stable, and suitable for further transactions.</li>
+  <li><code class="highlighter-rouge">STOP_LOSS_THRESHOLD</code>: The stop-loss threshold is defined as a standard showing whether an action shall be performed to stop-loss. Specifically, if the stop-loss ratio is larger than the threshold, then we shall sell the stock to stop-loss. Otherwise, we may hold the stock until the market is closed.</li>
+</ul>
+
+<p>首先，我们需要定义量化交易模型所需的常量。</p>
+<ul>
+  <li><code class="highlighter-rouge">OBSERVATION_WINDOW_SIZE</code>: 观察窗口用来判断当前市场情绪平稳度。根据经验调查，我们选取开盘之后的50分钟作为观察窗口。</li>
+  <li><code class="highlighter-rouge">MARKET_SENTIMENT_THRESHOLD</code>: 市场情绪平稳度阈值用来描述市场的趋势相对于噪声的程度，即平稳度，从而判断当日是否具有开仓条件。例如，若市场情绪平稳度指标小于阈值，则说明当日行情趋势明显，可以开仓。若情绪平稳度指标大于阈值，则说明当日行情震荡，趋势难以把握，从而放弃开仓。</li>
+  <li><code class="highlighter-rouge">STOP_LOSS_THRESHOLD</code>: 止损阈值用来描述是否需要采取措施平仓止损。例如，若开盘之后损失超过止损阈值，则选择平仓止损，反之则 一直持有仓位至收盘平仓。</li>
+</ul>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">"""
+Constants
+"""</span>
+<span class="c"># 情绪平稳度观察窗口 Observation window size after market open</span>
+<span class="n">OBSERVATION_WINDOW_SIZE</span> <span class="o">=</span> <span class="mi">200</span>
+
+<span class="c"># 情绪平稳度阈值 Market sentiment threshold</span>
+<span class="c"># If market sentiment &gt;= threshold, then the stock market is volatile</span>
+<span class="c"># If market sentiment &lt; threshold, then the stock market is stable</span>
+<span class="n">MARKET_SENTIMENT_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.0009</span>
+
+<span class="c"># 止损阈值 Stop-loss threshold</span>
+<span class="c"># If loss &gt;= threshold, then sell the stock to stop-loss</span>
+<span class="c"># If loss &lt; threshold, then hold the stock until market close</span>
+<span class="n">STOP_LOSS_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.05</span>
+</code></pre></div></div>
+
+<p>Then, let’s create some fake stock price data for demonstration purpose, and show the data in the diagram below.</p>
+
+<p>其次，为了演示目的，我们创建一些假的股票数据，并且用以下图表展示出来。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="n">np</span>
+
+<span class="c"># Create fake stock price data</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+<span class="n">prices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="mi">100</span>
+
+<span class="c"># Show diagram</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Stock price diagram'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">prices</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p><img src="/assets/img/2020-02-26-financial-market-sentiment/market_sentiment_11_0.png" alt="png" /></p>
+
+<p>We will choose the stock price within the first 50 min after the market is open as the observation window, which is used to determine the financial market sentiment.</p>
+
+<p>我们会选取开盘后50分钟的股票指数作为观察窗口，以此判断当前市场情绪平稳度。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Pick up the stock price in the observation window</span>
+<span class="n">sample_prices</span> <span class="o">=</span> <span class="n">prices</span><span class="p">[:</span><span class="n">OBSERVATION_WINDOW_SIZE</span><span class="p">]</span>
+
+<span class="c"># Show diagram</span>
+<span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="s">'9:00'</span><span class="p">,</span> <span class="s">'9:10'</span><span class="p">,</span> <span class="s">'9:20'</span><span class="p">,</span> <span class="s">'9:30'</span><span class="p">,</span> <span class="s">'9:40'</span><span class="p">]</span>
+<span class="n">step</span> <span class="o">=</span> <span class="n">OBSERVATION_WINDOW_SIZE</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">x_loc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">OBSERVATION_WINDOW_SIZE</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Stock price diagram in observation window (50 min)'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">sample_prices</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">x_loc</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p><img src="/assets/img/2020-02-26-financial-market-sentiment/market_sentiment_14_0.png" alt="png" /></p>
+
+<h3 id="financial-market-sentiment--市场情绪平稳度">Financial Market Sentiment / 市场情绪平稳度</h3>
+
+<p>The maximum drawdown is used to measure the maximum decline from a historical peak, which is calculated in the formula below.</p>
+
+<p>最大回撤用来衡量产品净值走到最低点时的收益率回撤幅度的最大值，其公式如下。</p>
+
+<p><img src="https://latex.codecogs.com/gif.latex?MaxDrawdown&space;=&space;\max&space;(&space;\frac{P_{PrevMax}&space;-&space;P_{Current}}{P_{PrevMax}})" title="MaxDrawdown = \max ( \frac{P_{PrevMax} - P_{Current}}{P_{PrevMax}})" /></p>
+
+<p>We will then calculate the average maximum drawdown with the following formula.</p>
+
+<p>我们用以下公式计算平均最大回撤。</p>
+
+<p><img src="https://latex.codecogs.com/gif.latex?AvgMaxDrawdown&space;=&space;\frac{1}{n}MaxDrawdown" title="AvgMaxDrawdown = \frac{1}{n}MaxDrawdown" /></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="n">pd</span>
+
+<span class="k">def</span> <span class="nf">calculate_drawdown</span><span class="p">(</span><span class="n">prices</span><span class="p">):</span>
+    <span class="s">"""
+    Calculate max drawdown of stock market
+    """</span>
+    <span class="n">prices</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">prices</span><span class="p">)</span>
+    <span class="n">cummax</span> <span class="o">=</span> <span class="n">prices</span><span class="o">.</span><span class="n">cummax</span><span class="p">()</span>
+    <span class="n">drawdown</span> <span class="o">=</span> <span class="p">(</span><span class="n">cummax</span> <span class="o">-</span> <span class="n">prices</span><span class="p">)</span> <span class="o">/</span> <span class="n">cummax</span>
+    <span class="k">return</span> <span class="n">drawdown</span>
+
+<span class="c"># Calculate max drawdown</span>
+<span class="n">drawdown</span> <span class="o">=</span> <span class="n">calculate_drawdown</span><span class="p">(</span><span class="n">sample_prices</span><span class="p">)</span>
+<span class="n">max_drawdown</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">drawdown</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'Max drawdown: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_drawdown</span><span class="p">))</span>
+
+<span class="c"># Calculate averate max drawdown</span>
+<span class="n">avg_max_drawdown</span> <span class="o">=</span> <span class="n">max_drawdown</span> <span class="o">/</span> <span class="n">OBSERVATION_WINDOW_SIZE</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'Average max drawdown: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">avg_max_drawdown</span><span class="p">))</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Max drawdown: 0.07719140875004761
+Average max drawdown: 0.00038595704375023806
+</code></pre></div></div>
+
+<p>Then, we will also calculate the maximum reverse drawdown, which measures the maximum increase from a historical valley floor.</p>
+
+<p>我们亦会通过计算最大反向回撤来衡量产品净值走到最高点时的收益率反向回撤幅度的最大值。</p>
+
+<p><img src="https://latex.codecogs.com/gif.latex?MaxReverseDrawdown&space;=&space;\max&space;(&space;\frac{P_{Current}&space;-&space;P_{PrevMin}}{P_{PrevMin}})" title="MaxReverseDrawdown = \max ( \frac{P_{Current} - P_{PrevMin}}{P_{PrevMin}})" /></p>
+
+<p>We will then calculate the average maximum reverse drawdown with the following formula.</p>
+
+<p>我们用以下公式计算平均最大反向回撤。</p>
+
+<p><img src="https://latex.codecogs.com/gif.latex?AvgMaxReverseDrawdown&space;=&space;\frac{1}{n}MaxReverseDrawdown" title="AvgMaxReverseDrawdown = \frac{1}{n}MaxReverseDrawdown" /></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">calculate_reverse_drawdown</span><span class="p">(</span><span class="n">prices</span><span class="p">):</span>
+    <span class="s">"""
+    Calculate reverse max drawdown of stock market
+    """</span>
+    <span class="n">prices</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">prices</span><span class="p">)</span>
+    <span class="n">cummin</span> <span class="o">=</span> <span class="n">prices</span><span class="o">.</span><span class="n">cummin</span><span class="p">()</span>
+    <span class="n">reverse_drawdown</span> <span class="o">=</span> <span class="p">(</span><span class="n">prices</span> <span class="o">-</span> <span class="n">cummin</span><span class="p">)</span> <span class="o">/</span> <span class="n">cummin</span>
+    <span class="k">return</span> <span class="n">reverse_drawdown</span>
+
+<span class="n">reverse_drawdown</span> <span class="o">=</span> <span class="n">calculate_reverse_drawdown</span><span class="p">(</span><span class="n">sample_prices</span><span class="p">)</span>
+<span class="n">max_reverse_drawdown</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">reverse_drawdown</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'Max reverse drawdown: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_reverse_drawdown</span><span class="p">))</span>
+
+<span class="n">avg_max_reverse_drawdown</span> <span class="o">=</span> <span class="n">max_reverse_drawdown</span> <span class="o">/</span> <span class="n">OBSERVATION_WINDOW_SIZE</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'Average max reverse drawdown: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">avg_max_reverse_drawdown</span><span class="p">))</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Max reverse drawdown: 0.29385793539668315
+Average max reverse drawdown: 0.0014692896769834156
+</code></pre></div></div>
+
+<p>Then, let’s show the diagram with the above figures.</p>
+
+<p>我们将观察窗口内的股票指数，股票指数各点回撤以及反向回撤用下图来表示。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">_</span><span class="p">,</span> <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+
+<span class="n">line1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">sample_prices</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">'m'</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s">'Stock price'</span><span class="p">)</span>
+
+<span class="n">ax2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+
+<span class="n">line2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">drawdown</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">'g'</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s">'Drawdown'</span><span class="p">)</span>
+<span class="n">line3</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">reverse_drawdown</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">'b'</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s">'Reverse drawdown'</span><span class="p">)</span>
+
+<span class="n">lines</span> <span class="o">=</span> <span class="n">line1</span> <span class="o">+</span> <span class="n">line2</span> <span class="o">+</span> <span class="n">line3</span>
+<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">get_label</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Stock price diagram in observation window (50 min)'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">x_loc</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p><img src="/assets/img/2020-02-26-financial-market-sentiment/market_sentiment_32_0.png" alt="png" /></p>
+
+<p>Next, we will need to calculate the financial market sentiment, which chooses the smaller one between the average maximum drawdown and average maximum reverse drawdown.</p>
+
+<p>其次，我们定义市场情绪平稳度为最大回撤均值和最大反向回撤均值中较小的值，该指标可以完美地描述一段时间序列的平稳度。</p>
+
+<p><img src="https://latex.codecogs.com/gif.latex?MarketSentiment&space;=&space;\min&space;(AvgMaxDrawdown,&space;AvgMaxReverseDrawdown)" title="MarketSentiment = \min (AvgMaxDrawdown, AvgMaxReverseDrawdown)" /></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">market_sentiment</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">avg_max_drawdown</span><span class="p">,</span> <span class="n">avg_max_reverse_drawdown</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'Market sentiment: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">market_sentiment</span><span class="p">))</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Market sentiment: 0.00038595704375023806
+</code></pre></div></div>
+
+<h3 id="profit-calculation--收益计算">Profit Calculation / 收益计算</h3>
+
+<p>Finally, we will calculate the profit based on the financial market sentiment. If the financial market sentiment is larger than the threshold, then we will not open a position, as the stock market is considered to be volatile. Otherwise, we will open a position as the stock market is stable enough.</p>
+
+<p>Then, we will compare the current price with the initial price when the market is open. If the current price is larger than the initial price, we can say that the stock price is increasing, and therefore we may choose to purchase the stock.</p>
+
+<p>Furthermore, if the stop-loss rate is larger than the threshold, we will sell the stock immediately to stop-loss. Otherwise, we will not sell the stock and calculate the profit until the transaction market is closed.</p>
+
+<p>最后，我们基于市场情绪平稳度来计算收益。若市场情绪平稳度大于阈值，我们可认为当日行情较为震荡，故放弃开仓。反之，若市场情绪平稳度小于阈值，我们可认为当日行情较为平稳，故可以考虑开仓。</p>
+
+<p>其次，我们判断当天趋势的方向。若当前股票指数高于开盘价，即可预测当日趋势向上，在市场平稳的情况下可做多。反之，若当前股票指数低于开盘价，即可预测当日趋势向下，在市场平稳的情况下可做空。</p>
+
+<p>此外，若开盘之后损失超过止损阈值，则选择平仓止损，反之则一直持有仓位至收盘平仓。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span> <span class="n">market_sentiment</span> <span class="o">&gt;=</span> <span class="n">MARKET_SENTIMENT_THRESHOLD</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'The stock market is volatile, therefore will not open a position'</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'The stock market is stable'</span><span class="p">)</span>
+    <span class="n">initial_price</span> <span class="o">=</span> <span class="n">sample_prices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">current_price</span> <span class="o">=</span> <span class="n">sample_prices</span><span class="p">[</span><span class="n">OBSERVATION_WINDOW_SIZE</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'Initial price: {}, current price: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">initial_price</span><span class="p">,</span> <span class="n">current_price</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">initial_price</span> <span class="o">&lt;</span> <span class="n">current_price</span><span class="p">:</span>
+        
+        <span class="k">print</span><span class="p">(</span><span class="s">'The stock price is increasing. Let</span><span class="se">\'</span><span class="s">s purchase the stock.'</span><span class="p">)</span>
+        
+        <span class="c"># Get stock price after the observation window</span>
+        <span class="n">prices_after_window</span> <span class="o">=</span> <span class="n">prices</span><span class="p">[</span><span class="n">OBSERVATION_WINDOW_SIZE</span><span class="p">:]</span>
+        <span class="n">profit</span> <span class="o">=</span> <span class="n">prices_after_window</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">prices_after_window</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">current_price</span>
+
+        <span class="k">for</span> <span class="n">price</span> <span class="ow">in</span> <span class="n">prices_after_window</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">price</span> <span class="o">&lt;</span> <span class="n">current_price</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">current_price</span> <span class="o">-</span> <span class="n">price</span>
+                <span class="n">loss_rate</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">current_price</span>
+                <span class="k">if</span> <span class="n">loss_rate</span> <span class="o">&gt;=</span> <span class="n">STOP_LOSS_THRESHOLD</span><span class="p">:</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s">'Stop loss by selling the stock. Loss: {}, Loss Rate: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">loss_rate</span><span class="p">))</span>
+                    <span class="n">profit</span> <span class="o">=</span> <span class="n">price</span> <span class="o">-</span> <span class="n">current_price</span>
+                    <span class="k">break</span>
+
+        <span class="k">print</span><span class="p">(</span><span class="s">'Total profit: {}'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">profit</span><span class="p">))</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>The stock market is stable
+Initial price: 101.62434536366324, current price: 121.3377629695897
+The stock price is increasing. Let's purchase the stock.
+Total profit: 17.47471319001201
+</code></pre></div></div>
+
+<h2 id="conclusion--结论">Conclusion / 结论</h2>
+
+<p>To put it in a nutshell, we use the minimum value of the average maximum drawdown and the average maximum reverse drawdown to create a quantitative trading model based on financial market sentiment. The project can be downloaded from my <a href="https://github.com/mikemikezhu/financial-market-sentiment">GitHub</a>.</p>
+
+<p>我们用最大回撤均值和最大反向回撤均值中较小的值作为市场情绪平稳度，从而计算股票指数收益。欢迎从我的<a href="https://github.com/mikemikezhu/financial-market-sentiment">GitHub</a>上下载此项目。</p>
+
+
+
+  <small>tags: <em>quantitative_analysis</em> - <em>finance</em></small>
+
+
+
+        </section>
+    </div>
+    <script src="/assets/js/scale.fix.js"></script>
+    
+</body>
+
+</html>
